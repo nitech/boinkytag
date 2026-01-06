@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAG - Multiplayer Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="menu-screen" class="screen active">
+        <div class="menu-container">
+            <h1>TAG</h1>
+            <p class="subtitle">Et lokalt multiplayer spill av catch!</p>
+            
+            <div class="player-select">
+                <label>Antall spillere:</label>
+                <select id="player-count">
+                    <option value="2">2 spillere</option>
+                    <option value="3">3 spillere</option>
+                    <option value="4">4 spillere</option>
+                </select>
+            </div>
+
+            <div class="level-select">
+                <h2>Velg verden:</h2>
+                <div class="level-buttons">
+                    <button class="level-btn" data-level="0">Verden 1</button>
+                    <button class="level-btn" data-level="1">Verden 2</button>
+                    <button class="level-btn" data-level="2">Verden 3</button>
+                </div>
+            </div>
+
+            <div class="controls-info">
+                <h3>Kontroller:</h3>
+                <div class="controls-grid">
+                    <div>Spiller 1: <kbd>W</kbd> <kbd>A</kbd> <kbd>D</kbd></div>
+                    <div>Spiller 2: <kbd>↑</kbd> <kbd>←</kbd> <kbd>→</kbd></div>
+                    <div>Spiller 3: <kbd>I</kbd> <kbd>J</kbd> <kbd>L</kbd></div>
+                    <div>Spiller 4: <kbd>T</kbd> <kbd>F</kbd> <kbd>H</kbd></div>
+                </div>
+            </div>
+
+            <button id="start-btn" class="start-btn">Start Spill</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-ui">
+            <div id="timer">00:00</div>
+            <button id="menu-btn" class="menu-btn">Meny</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
+
