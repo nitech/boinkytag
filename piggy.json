@@ -1,0 +1,91 @@
+{
+  "version": 2,
+  "columns": 4,
+  "negativeSpacingEnabled": false,
+  "backgroundColor": "transparent",
+  "manualCellSizeEnabled": false,
+  "manualCellWidth": 64,
+  "manualCellHeight": 64,
+  "layers": [
+    {
+      "id": "e85fa80e-fd43-4914-b0ac-a5f2b25098ea",
+      "name": "Base",
+      "visible": true,
+      "locked": false,
+      "sprites": [
+        {
+          "id": "1e9337f0-a840-45a6-814f-32988706fed5",
+          "width": 20,
+          "height": 19,
+          "x": 0,
+          "y": 0,
+          "rotation": 0,
+          "flipX": false,
+          "flipY": false,
+          "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAATCAYAAACQjC21AAABWElEQVR4AayRsU4CQRRF3/oRfoDWlCQae0ttKCy0MdEEYuOHGBtDYWGhljRQ0hMKSmpqAj8Beya8yd3dGaBgk8vM3HffmbfLmZ34aQA38uTuksimnqkACf71RubinNJ9+81c1BUagRQAdV5b5vImfBeeAjjT614AYtAAaDldmYtQp30bL6DOGV+l0ADUYmrvF7DetM4NKEpljwLWG4HipaABWJTPU//OHl4+7P3nP4oGbwaQ03D2ZSWioB6AbFxAXMfAyGa/IUU+PCDEJRfdK7vsXbNNijfTQmNCLbIvX4UlajJfG3KjXj8IXPSnhgAAGszGxvSseL/dIUvUQWBM7jafz49h52s4yE8ElqMXfI/B91zK1S2TMaWLKpPu/ZcJ0EBYhYfUS+3jhBSZktscCsCFlxJ5+uhHFSAGRUL1ZjzqKjzy6jWAFAkRVuU88qokkAAAVc7DV20BAAD//3JwzWgAAAAGSURBVAMAVaj9J5nCsr0AAAAASUVORK5CYII=",
+          "name": "sprite_1.png"
+        },
+        {
+          "id": "c26fcccc-5584-4ea2-a953-2c7022bfd90a",
+          "width": 20,
+          "height": 19,
+          "x": 0,
+          "y": 0,
+          "rotation": 0,
+          "flipX": false,
+          "flipY": false,
+          "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAATCAYAAACQjC21AAABWElEQVR4AayRsU4CQRRF3/oRfoDWlCQae0ttKCy0MdEEYuOHGBtDYWGhljRQ0hMKSmpqAj8Beya8yd3dGaBgk8vM3HffmbfLmZ34aQA38uTuksimnqkACf71RubinNJ9+81c1BUagRQAdV5b5vImfBeeAjjT614AYtAAaDldmYtQp30bL6DOGV+l0ADUYmrvF7DetM4NKEpljwLWG4HipaABWJTPU//OHl4+7P3nP4oGbwaQ03D2ZSWioB6AbFxAXMfAyGa/IUU+PCDEJRfdK7vsXbNNijfTQmNCLbIvX4UlajJfG3KjXj8IXPSnhgAAGszGxvSseL/dIUvUQWBM7jafz49h52s4yE8ElqMXfI/B91zK1S2TMaWLKpPu/ZcJ0EBYhYfUS+3jhBSZktscCsCFlxJ5+uhHFSAGRUL1ZjzqKjzy6jWAFAkRVuU88qokkAAAVc7DV20BAAD//3JwzWgAAAAGSURBVAMAVaj9J5nCsr0AAAAASUVORK5CYII=",
+          "name": "sprite_2.png"
+        },
+        {
+          "id": "489fa91c-a2dc-44a5-ad50-c3660626fa7e",
+          "width": 20,
+          "height": 19,
+          "x": 0,
+          "y": 0,
+          "rotation": 0,
+          "flipX": false,
+          "flipY": false,
+          "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAATCAYAAACQjC21AAABWUlEQVR4AayRsU4CQRRF3/oRfoDWlCQae0ttKCy0MdEEYuOHGBtDYWGhljRY2hMKSmpqAj8BeybcydvZWZaCTS4z8+59Z94uJ3bkpwbcuKfpLhfZpJkKkODP4M8kzjnddl9MwvfQCMQA1HvumKQm6hI1D+BMr2oBSIEGQMvpyiRCve51vACfM3UvDw1Ab+b2uoD1qnNqQFEuexAwbQRKLQcNwKJ8HoY3dvf0Zq9fv1E0qBlAk8azDysRBX4AspGASIfAyDZ+Q0w+PCDEJWf9CzsfXLLNijfzRm1Cb7IvX4UlajJfG1Ih9VuBi+HUEABAo9m/MT0rte/+mCWqFRiTu837433YaQ0H9xOB5egF32P0OXd2dctkTCnhMunef5kADYS9qCFfy+3jhJhMyW2CApCo5USePvpRBUgBk1DaTA2/TTUgDYICkainwiPr61kgAYKpAHjhk/XaAgAA//9UeaydAAAABklEQVQDAAyX/RcmKWCUAAAAAElFTkSuQmCC",
+          "name": "sprite_6.png"
+        },
+        {
+          "id": "13e2a2ac-ee02-403e-8edd-ebe879dc6538",
+          "width": 20,
+          "height": 19,
+          "x": 0,
+          "y": 0,
+          "rotation": 0,
+          "flipX": false,
+          "flipY": false,
+          "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAATCAYAAACQjC21AAABVElEQVR4AayRq24CQRRA7/Yj+gGtRpK0qa9sDaKiGBJIIBg+hGAIAoEAJAYkniCQaDSBn4A9E+7k7uwsj4RNDjNzH2fuLi/y5CcnPJmn6C5TcgprMkIKJ62FKJxj/JbbopC3Ui8kgajSKImiTcQVYlbAmV6NOSEBGhDt1wdRKKqUv/0F5DkTt1ipE9pkbK8XsH6VXgUpxGrvEoaNSInFpE6YpE918CN/9a50RlMPDdqMoIj5pi+pIiHvhGwUJMo9MmoLvyFJPjwi4JK35oe8tz7ZRuHNbCI3oU2yT1+FxbPaHgU0EOZvCneDtQACRLPNUpieldi4OWfx3BT6ysumV/t3O13dwfx4YTp6wveYDbcmnd0yGVMqZJn06r9MAQ0UW4iBjcX2fkKSTMltKkWgEItBPX30Q0ZI4BFCGb05IbdRGE5DLIRaJJackCSFsWbiFmpDzgAAAP//WNfYnAAAAAZJREFUAwCeB/0XzHPxSwAAAABJRU5ErkJggg==",
+          "name": "sprite_7.png"
+        },
+        {
+          "id": "a7201aea-5e78-4e3c-88fd-b56537c11aab",
+          "width": 19,
+          "height": 18,
+          "x": 0,
+          "y": 0,
+          "rotation": 0,
+          "flipX": false,
+          "flipY": false,
+          "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAASCAYAAAC5DOVpAAABSUlEQVR4AazRrU4DQRQF4CkPwQOArmwCwSPBVCDAkEBCg+FBCIZUYkBiQOJJRSUaTeAlSr9J7+Z2200RbHJ25p6/nd3dKv94rZTN0tV+TpJmbc28VMb8OHotAXPG8eC6BPAKMpoyopLhZb8EIoiHHKTJZK6WIZmVfE2+S4BxODhsyu1xgXZhLQuxa43yg/52UQjrvH8qy0GF5nWFtaw3v87GR+Xk4rbcPDw1EIiwgsA6jlbLfDPvL5zRFRIEXjl5cy2zIfgBCgL4nau9sjvat92IpqzLOf8CS9L7x0+BJXIxbCz7HE8K8Ct5nr4VJ7fiMjaWZbP93fmppcRah8Wtls1fpRd/09MX2sriRPSA071M74s8cy2zQRAYmHEZOAiOj18uuKYMQWBgFMzAZfDxywWWypAMjDloTwvQ+WKOdaWMwCjQBTpfG78AAAD//7DGbG8AAAAGSURBVAMAAfrwCdvtoxQAAAAASUVORK5CYII=",
+          "name": "sprite_8.png"
+        },
+        {
+          "id": "349d3493-fb19-4c2e-b50a-529824816893",
+          "width": 20,
+          "height": 18,
+          "x": 0,
+          "y": 0,
+          "rotation": 0,
+          "flipX": false,
+          "flipY": false,
+          "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAASCAYAAABb0P4QAAABVElEQVR4AaySoU4DQRCG53gIHgB0ZRMIHklNBQIQJJC0wfAgBENKgkAAsqZIPKmorEYTeAnYb9rZzM1erxW95L+d/f+Z7/au3ZEtXwXwb3m1PWfZokvsqwHpeB2+C6JepV73Rkz0eGgGEgDqX3cE2QCeF74HsGfWPAViMAToe/ojiIZ+91jh+FnJI/PyUAX6MNbAvY46u6IPagAzuxZIUxRQPMCsXgqs0nU+OpHTqzu5fX5T0WyDfqCpnsweJCEqMgVSmAChTWH0rvyGhHx8g+0NDmR/eGjPKlbe6uKxV/OLE/o0vYbfyuf8N4sg5nitwK/RVBCNwMazD+H0rHgvg4kgalMr0Jpsvb8809JW3YRbDciTx0/z0LLYcjJOaVq45b0GLGPJ3wxQU84hvN8IZNjEQJs8jDoD0y9W8QeNw3hRDHqRM4+XgWwwCb3wonxOTc48+gcAAP//6Vci+wAAAAZJREFUAwCh5wAU9cIHVgAAAABJRU5ErkJggg==",
+          "name": "sprite_9.png"
+        }
+      ]
+    }
+  ]
+}

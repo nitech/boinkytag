@@ -24,6 +24,14 @@ let gameState = {
 // Canvas setup - wait for DOM
 let canvas, ctx;
 
+// Character sprite data for player 1
+let piggyCharacter = null;
+let piggySprites = [];
+
+// Character sprite data for player 2
+let goldenPiggyCharacter = null;
+let goldenPiggySprites = [];
+
 // Set canvas size (viewport size, not world size)
 function resizeCanvas() {
     if (!canvas) return;
@@ -31,15 +39,120 @@ function resizeCanvas() {
     canvas.height = window.innerHeight;
 }
 
+// Remove white background from image
+function removeWhiteBackground(img) {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = img.width;
+    tempCanvas.height = img.height;
+    const tempCtx = tempCanvas.getContext('2d', { alpha: true });
+    
+    tempCtx.drawImage(img, 0, 0);
+    const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    const data = imageData.data;
+    
+    // Remove white/light pixels (make them transparent)
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        // If pixel is white or very light, make it transparent
+        if (r > 240 && g > 240 && b > 240) {
+            data[i + 3] = 0; // Set alpha to 0
+        }
+    }
+    
+    tempCtx.putImageData(imageData, 0, 0);
+    const newImg = new Image();
+    newImg.src = tempCanvas.toDataURL();
+    return new Promise((resolve) => {
+        newImg.onload = () => resolve(newImg);
+        newImg.onerror = () => resolve(img); // Fallback to original
+    });
+}
+
+// Load piggy character
+async function loadPiggyCharacter() {
+    try {
+        const response = await fetch('piggy.json');
+        piggyCharacter = await response.json();
+        
+        // Load all sprites as images
+        piggySprites = [];
+        if (piggyCharacter.layers && piggyCharacter.layers[0] && piggyCharacter.layers[0].sprites) {
+            for (let sprite of piggyCharacter.layers[0].sprites) {
+                const img = new Image();
+                img.src = sprite.base64;
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                    img.onerror = resolve; // Continue even if image fails to load
+                });
+                
+                // Remove white background
+                const processedImg = await removeWhiteBackground(img);
+                
+                piggySprites.push({
+                    image: processedImg,
+                    x: sprite.x,
+                    y: sprite.y,
+                    width: sprite.width,
+                    height: sprite.height
+                });
+            }
+        }
+        console.log('Piggy character loaded:', piggySprites.length, 'sprites');
+    } catch (error) {
+        console.error('Failed to load piggy character:', error);
+    }
+}
+
+// Load golden piggy character
+async function loadGoldenPiggyCharacter() {
+    try {
+        const response = await fetch('golden_piggy.json');
+        goldenPiggyCharacter = await response.json();
+        
+        // Load all sprites as images
+        goldenPiggySprites = [];
+        if (goldenPiggyCharacter.layers && goldenPiggyCharacter.layers[0] && goldenPiggyCharacter.layers[0].sprites) {
+            for (let sprite of goldenPiggyCharacter.layers[0].sprites) {
+                const img = new Image();
+                img.src = sprite.base64;
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                    img.onerror = resolve; // Continue even if image fails to load
+                });
+                
+                // Remove white background
+                const processedImg = await removeWhiteBackground(img);
+                
+                goldenPiggySprites.push({
+                    image: processedImg,
+                    x: sprite.x,
+                    y: sprite.y,
+                    width: sprite.width,
+                    height: sprite.height
+                });
+            }
+        }
+        console.log('Golden piggy character loaded:', goldenPiggySprites.length, 'sprites');
+    } catch (error) {
+        console.error('Failed to load golden piggy character:', error);
+    }
+}
+
 // Initialize when DOM is ready
-function init() {
+async function init() {
     canvas = document.getElementById('gameCanvas');
     if (!canvas) {
         console.error('Canvas element not found!');
         return;
     }
-    ctx = canvas.getContext('2d');
+    ctx = canvas.getContext('2d', { alpha: true });
     resizeCanvas();
+    
+    // Load characters
+    await loadPiggyCharacter();
+    await loadGoldenPiggyCharacter();
 }
 
 // Wait for DOM to be ready
@@ -67,6 +180,10 @@ class Player {
         this.onGround = false;
         this.jumpPower = 25; // Increased to allow reaching higher platforms
         this.gravity = 0.6;
+        this.tagImmunityTime = 0; // Timestamp when tag immunity expires (0 = no immunity)
+        this.animationFrame = 0; // Current animation frame
+        this.lastAnimationTime = Date.now(); // Last time animation was updated
+        this.isMoving = false; // Track if player is moving
     }
 
     update(platforms) {
@@ -122,6 +239,43 @@ class Player {
 
         // Friction
         this.velocityX *= 0.85;
+        
+        // Update animation state
+        this.isMoving = Math.abs(this.velocityX) > 0.1 || Math.abs(this.velocityY) > 0.1;
+        
+        // Update animation frame if moving (for players with character sprites)
+        const currentTime = Date.now();
+        if (this.id === 0 && piggySprites.length > 0) {
+            // Player 1 with piggy character
+            if (this.isMoving) {
+                const animationSpeed = 150; // Milliseconds per frame
+                const timeSinceLastFrame = currentTime - this.lastAnimationTime;
+                
+                if (timeSinceLastFrame >= animationSpeed) {
+                    this.animationFrame = (this.animationFrame + 1) % piggySprites.length;
+                    this.lastAnimationTime = currentTime;
+                }
+            } else {
+                // Reset to first frame when not moving
+                this.animationFrame = 0;
+                this.lastAnimationTime = currentTime;
+            }
+        } else if (this.id === 1 && goldenPiggySprites.length > 0) {
+            // Player 2 with golden piggy character
+            if (this.isMoving) {
+                const animationSpeed = 150; // Milliseconds per frame
+                const timeSinceLastFrame = currentTime - this.lastAnimationTime;
+                
+                if (timeSinceLastFrame >= animationSpeed) {
+                    this.animationFrame = (this.animationFrame + 1) % goldenPiggySprites.length;
+                    this.lastAnimationTime = currentTime;
+                }
+            } else {
+                // Reset to first frame when not moving
+                this.animationFrame = 0;
+                this.lastAnimationTime = currentTime;
+            }
+        }
     }
 
     collidesWith(rect) {
@@ -136,33 +290,193 @@ class Player {
     draw() {
         if (!ctx) return;
         
-        // Draw player with shadow for better visibility
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 5;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
+        // Check if player has tag immunity (blinking effect)
+        const hasImmunity = this.tagImmunityTime > Date.now();
+        const blinkAlpha = hasImmunity ? 0.4 + Math.sin(Date.now() / 150) * 0.4 : 1;
         
-        // Draw player
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        
-        // Reset shadow
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-        
-        // Draw border (thicker for better visibility)
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(this.x, this.y, this.width, this.height);
-        
-        // Draw player number for debugging
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 20px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText((this.id + 1).toString(), this.x + this.width / 2, this.y + this.height / 2);
+        // Draw player 1 with piggy character sprite, player 2 with golden piggy, others with colored rectangle
+        if (this.id === 0 && piggySprites.length > 0) {
+            // Draw piggy character for player 1
+            ctx.save();
+            
+            // Set alpha for blinking if immune
+            if (hasImmunity) {
+                ctx.globalAlpha = blinkAlpha;
+            } else {
+                ctx.globalAlpha = 1;
+            }
+            
+            // Enable image smoothing for better quality
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Use source-over composite to preserve transparency
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Find the largest sprite dimensions to calculate scale
+            let maxWidth = 0, maxHeight = 0;
+            for (let spriteData of piggySprites) {
+                maxWidth = Math.max(maxWidth, spriteData.width);
+                maxHeight = Math.max(maxHeight, spriteData.height);
+            }
+            
+            // Calculate scale to fit player size (40x40)
+            const scaleX = this.width / maxWidth;
+            const scaleY = this.height / maxHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            // Draw the current animation frame (or all sprites if not moving)
+            if (this.isMoving) {
+                // Draw only the current animation frame when moving
+                const spriteData = piggySprites[this.animationFrame];
+                const sprite = piggyCharacter.layers[0].sprites[this.animationFrame];
+                
+                if (spriteData && spriteData.image.complete && sprite) {
+                    const drawX = this.x + (sprite.x || 0) * scale;
+                    const drawY = this.y + (sprite.y || 0) * scale;
+                    const drawWidth = spriteData.width * scale;
+                    const drawHeight = spriteData.height * scale;
+                    
+                    ctx.drawImage(
+                        spriteData.image,
+                        drawX,
+                        drawY,
+                        drawWidth,
+                        drawHeight
+                    );
+                }
+            } else {
+                // Draw all sprites when idle (they overlay each other)
+                for (let i = 0; i < piggySprites.length; i++) {
+                    const spriteData = piggySprites[i];
+                    const sprite = piggyCharacter.layers[0].sprites[i];
+                    
+                    if (spriteData.image.complete && sprite) {
+                        const drawX = this.x + (sprite.x || 0) * scale;
+                        const drawY = this.y + (sprite.y || 0) * scale;
+                        const drawWidth = spriteData.width * scale;
+                        const drawHeight = spriteData.height * scale;
+                        
+                        ctx.drawImage(
+                            spriteData.image,
+                            drawX,
+                            drawY,
+                            drawWidth,
+                            drawHeight
+                        );
+                    }
+                }
+            }
+            
+            ctx.restore();
+        } else if (this.id === 1 && goldenPiggySprites.length > 0) {
+            // Draw golden piggy character for player 2
+            ctx.save();
+            
+            // Set alpha for blinking if immune
+            if (hasImmunity) {
+                ctx.globalAlpha = blinkAlpha;
+            } else {
+                ctx.globalAlpha = 1;
+            }
+            
+            // Enable image smoothing for better quality
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Use source-over composite to preserve transparency
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Find the largest sprite dimensions to calculate scale
+            let maxWidth = 0, maxHeight = 0;
+            for (let spriteData of goldenPiggySprites) {
+                maxWidth = Math.max(maxWidth, spriteData.width);
+                maxHeight = Math.max(maxHeight, spriteData.height);
+            }
+            
+            // Calculate scale to fit player size (40x40)
+            const scaleX = this.width / maxWidth;
+            const scaleY = this.height / maxHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            // Draw the current animation frame (or all sprites if not moving)
+            if (this.isMoving) {
+                // Draw only the current animation frame when moving
+                const spriteData = goldenPiggySprites[this.animationFrame];
+                const sprite = goldenPiggyCharacter.layers[0].sprites[this.animationFrame];
+                
+                if (spriteData && spriteData.image.complete && sprite) {
+                    const drawX = this.x + (sprite.x || 0) * scale;
+                    const drawY = this.y + (sprite.y || 0) * scale;
+                    const drawWidth = spriteData.width * scale;
+                    const drawHeight = spriteData.height * scale;
+                    
+                    ctx.drawImage(
+                        spriteData.image,
+                        drawX,
+                        drawY,
+                        drawWidth,
+                        drawHeight
+                    );
+                }
+            } else {
+                // Draw all sprites when idle (they overlay each other)
+                for (let i = 0; i < goldenPiggySprites.length; i++) {
+                    const spriteData = goldenPiggySprites[i];
+                    const sprite = goldenPiggyCharacter.layers[0].sprites[i];
+                    
+                    if (spriteData.image.complete && sprite) {
+                        const drawX = this.x + (sprite.x || 0) * scale;
+                        const drawY = this.y + (sprite.y || 0) * scale;
+                        const drawWidth = spriteData.width * scale;
+                        const drawHeight = spriteData.height * scale;
+                        
+                        ctx.drawImage(
+                            spriteData.image,
+                            drawX,
+                            drawY,
+                            drawWidth,
+                            drawHeight
+                        );
+                    }
+                }
+            }
+            
+            ctx.restore();
+        } else {
+            // Apply blinking effect if immune (for other players)
+            if (hasImmunity) {
+                ctx.globalAlpha = blinkAlpha;
+            }
+            // Draw other players with colored rectangle
+            // Draw player with shadow for better visibility
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            // Draw player
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            
+            // Draw border (thicker for better visibility)
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(this.x, this.y, this.width, this.height);
+            
+            // Draw player number for debugging
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText((this.id + 1).toString(), this.x + this.width / 2, this.y + this.height / 2);
+        }
 
         // Draw "it" indicator (white arrow)
         if (this.isIt) {
@@ -177,6 +491,9 @@ class Player {
             ctx.fill();
             ctx.stroke();
         }
+        
+        // Reset alpha
+        ctx.globalAlpha = 1;
     }
 }
 
@@ -674,23 +991,34 @@ function checkCollisions() {
     });
     
     // Check tagging - must be done after all updates
-    gameState.players.forEach(player => {
-        if (!player.isIt) return;
+    // Only one player should have tag at a time, so find the player with tag first
+    const playerWithTag = gameState.players.find(p => p.isIt);
+    
+    if (playerWithTag) {
+        // Check if player with tag is still immune (2 second cooldown after getting tagged)
+        const isImmune = playerWithTag.tagImmunityTime > Date.now();
         
-        gameState.players.forEach(otherPlayer => {
-            // Skip if same player or other player is already "it"
-            if (player.id === otherPlayer.id || otherPlayer.isIt) return;
-            
-            // Simple collision check - players are touching
-            const isColliding = player.collidesWith(otherPlayer);
-            if (isColliding) {
-                // Tag! Transfer "it" status to the player who was tagged
-                player.isIt = false;
-                otherPlayer.isIt = true;
-                console.log(`TAG! Player ${otherPlayer.id + 1} (${otherPlayer.color}) is now "it"!`);
+        if (!isImmune) {
+            // Check collision with all other players
+            for (let otherPlayer of gameState.players) {
+                // Skip if same player
+                if (playerWithTag.id === otherPlayer.id) continue;
+                
+                // Check if they are colliding
+                const isColliding = playerWithTag.collidesWith(otherPlayer);
+                if (isColliding) {
+                    // Tag! Transfer "it" status to the player who was tagged
+                    playerWithTag.isIt = false;
+                    otherPlayer.isIt = true;
+                    // Set 2 second immunity for the newly tagged player
+                    otherPlayer.tagImmunityTime = Date.now() + 2000;
+                    console.log(`TAG! Player ${otherPlayer.id + 1} (${otherPlayer.color}) is now "it"!`);
+                    // Break after first tag to avoid multiple tags in same frame
+                    break;
+                }
             }
-        });
-    });
+        }
+    }
 }
 
 // Game loop
