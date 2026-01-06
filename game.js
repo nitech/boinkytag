@@ -520,7 +520,9 @@ class Platform {
     constructor(x, y, width, height, color = '#8B4513', tileIndex = 0) {
         this.x = x;
         this.y = y;
-        this.width = width;
+        // Round down width to nearest multiple of TILE_SIZE to ensure tiles end at natural boundaries
+        this.width = Math.floor(width / TILE_SIZE) * TILE_SIZE;
+        if (this.width < TILE_SIZE) this.width = TILE_SIZE; // Minimum one tile
         this.height = height;
         this.color = color;
         this.tileIndex = tileIndex; // Tile index: 0, 2, 4, 6, or 7
@@ -532,8 +534,8 @@ class Platform {
         // Disable image smoothing for pixel-perfect rendering
         ctx.imageSmoothingEnabled = false;
         
-        // Calculate how many tiles we need to draw
-        const numTiles = Math.ceil(this.width / TILE_SIZE);
+        // Calculate how many whole tiles we can draw (only draw complete tiles)
+        const numTiles = Math.floor(this.width / TILE_SIZE);
         
         // Calculate tile position in tileset based on tile index
         // Tiles are arranged horizontally, each tile is 16x16 pixels
@@ -543,15 +545,14 @@ class Platform {
         const spriteX = tileCol * TILE_SIZE;
         const spriteY = tileRow * TILE_SIZE;
         
-        // Draw each tile in the platform (all using the same tile index)
+        // Draw each whole tile in the platform (all using the same tile index)
         for (let i = 0; i < numTiles; i++) {
             const tileX = this.x + (i * TILE_SIZE);
-            const drawWidth = Math.min(TILE_SIZE, this.x + this.width - tileX);
             
             ctx.drawImage(
                 worldTileset,
                 spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile from tileset
-                tileX, this.y, drawWidth, this.height // Destination: position on canvas
+                tileX, this.y, TILE_SIZE, this.height // Destination: position on canvas (always full tile)
             );
         }
     }
@@ -562,7 +563,9 @@ class BouncePad {
     constructor(x, y, width, height) {
         this.x = x;
         this.y = y;
-        this.width = width;
+        // Round down width to nearest multiple of TILE_SIZE to ensure tiles end at natural boundaries
+        this.width = Math.floor(width / TILE_SIZE) * TILE_SIZE;
+        if (this.width < TILE_SIZE) this.width = TILE_SIZE; // Minimum one tile
         this.height = height;
         this.bouncePower = 33; // Adjusted to jump approximately 5 platform heights (platforms are ~180px apart)
     }
@@ -573,8 +576,8 @@ class BouncePad {
         // Disable image smoothing for pixel-perfect rendering
         ctx.imageSmoothingEnabled = false;
         
-        // Calculate how many tiles we need to draw
-        const numTiles = Math.ceil(this.width / TILE_SIZE);
+        // Calculate how many whole tiles we can draw (only draw complete tiles)
+        const numTiles = Math.floor(this.width / TILE_SIZE);
         
         // Calculate tile position in tileset based on tile index (133)
         // Tiles are arranged horizontally, each tile is 16x16 pixels
@@ -585,15 +588,14 @@ class BouncePad {
         const spriteX = tileCol * TILE_SIZE;
         const spriteY = tileRow * TILE_SIZE;
         
-        // Draw each tile in the bounce pad (all using tile 133)
+        // Draw each whole tile in the bounce pad (all using tile 133)
         for (let i = 0; i < numTiles; i++) {
             const tileX = this.x + (i * TILE_SIZE);
-            const drawWidth = Math.min(TILE_SIZE, this.x + this.width - tileX);
             
             ctx.drawImage(
                 worldTileset,
                 spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile 133 from tileset
-                tileX, this.y, drawWidth, this.height // Destination: position on canvas
+                tileX, this.y, TILE_SIZE, this.height // Destination: position on canvas (always full tile)
             );
         }
     }
@@ -668,7 +670,10 @@ function getLevel1() {
         
         // Create platforms across the width, with more spacing
         for (let x = 0; x < WORLD_WIDTH; x += 400 + (layer % 4) * 100) {
-            const platformWidth = 150 + (layer % 3) * 50;
+            let platformWidth = 150 + (layer % 3) * 50;
+            // Round down to nearest multiple of TILE_SIZE to ensure tiles end at natural boundaries
+            platformWidth = Math.floor(platformWidth / TILE_SIZE) * TILE_SIZE;
+            if (platformWidth < TILE_SIZE) platformWidth = TILE_SIZE; // Minimum one tile
             if (x + platformWidth > WORLD_WIDTH) break;
             // Select a random valid tile index for this platform
             const tileIndex = VALID_PLATFORM_TILES[Math.floor(Math.random() * VALID_PLATFORM_TILES.length)];
@@ -680,7 +685,7 @@ function getLevel1() {
         platforms: platforms,
         bouncePads: [
             // Ground level bounce pads
-            new BouncePad(250, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(250, WORLD_HEIGHT - 170, 48, 20),
             new BouncePad(750, WORLD_HEIGHT - 170, 50, 20),
             new BouncePad(1250, WORLD_HEIGHT - 170, 50, 20),
             new BouncePad(1750, WORLD_HEIGHT - 170, 50, 20),
@@ -740,7 +745,10 @@ function getLevel2() {
         
         // Create platforms across the width, with more spacing
         for (let x = 0; x < WORLD_WIDTH; x += 400 + (layer % 4) * 100) {
-            const platformWidth = 150 + (layer % 3) * 50;
+            let platformWidth = 150 + (layer % 3) * 50;
+            // Round down to nearest multiple of TILE_SIZE to ensure tiles end at natural boundaries
+            platformWidth = Math.floor(platformWidth / TILE_SIZE) * TILE_SIZE;
+            if (platformWidth < TILE_SIZE) platformWidth = TILE_SIZE; // Minimum one tile
             if (x + platformWidth > WORLD_WIDTH) break;
             // Select a random valid tile index for this platform
             const tileIndex = VALID_PLATFORM_TILES[Math.floor(Math.random() * VALID_PLATFORM_TILES.length)];
@@ -815,7 +823,10 @@ function getLevel3() {
         
         // Create platforms across the width, with some variation
         for (let x = 0; x < WORLD_WIDTH; x += 180 + (layer % 5) * 30) {
-            const platformWidth = 100 + (layer % 3) * 60;
+            let platformWidth = 100 + (layer % 3) * 60;
+            // Round down to nearest multiple of TILE_SIZE to ensure tiles end at natural boundaries
+            platformWidth = Math.floor(platformWidth / TILE_SIZE) * TILE_SIZE;
+            if (platformWidth < TILE_SIZE) platformWidth = TILE_SIZE; // Minimum one tile
             if (x + platformWidth > WORLD_WIDTH) break;
             // Select a random valid tile index for this platform
             const tileIndex = VALID_PLATFORM_TILES[Math.floor(Math.random() * VALID_PLATFORM_TILES.length)];
