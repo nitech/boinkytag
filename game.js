@@ -178,7 +178,7 @@ class Player {
         this.velocityX = 0;
         this.velocityY = 0;
         this.onGround = false;
-        this.jumpPower = 25; // Increased to allow reaching higher platforms
+        this.jumpPower = 12; // Reduced for more controlled jumping
         this.gravity = 0.6;
         this.tagImmunityTime = 0; // Timestamp when tag immunity expires (0 = no immunity)
         this.animationFrame = 0; // Current animation frame
@@ -306,9 +306,8 @@ class Player {
                 ctx.globalAlpha = 1;
             }
             
-            // Enable image smoothing for better quality
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
+            // Disable image smoothing for pixel-perfect rendering
+            ctx.imageSmoothingEnabled = false;
             
             // Use source-over composite to preserve transparency
             ctx.globalCompositeOperation = 'source-over';
@@ -380,9 +379,8 @@ class Player {
                 ctx.globalAlpha = 1;
             }
             
-            // Enable image smoothing for better quality
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
+            // Disable image smoothing for pixel-perfect rendering
+            ctx.imageSmoothingEnabled = false;
             
             // Use source-over composite to preserve transparency
             ctx.globalCompositeOperation = 'source-over';
@@ -600,37 +598,26 @@ class Teleport {
 
 // Level definitions (functions that return level data based on world size)
 function getLevel1() {
+    const platforms = [
+        new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50), // Ground
+    ];
+    
+    // Generate platforms in layers going up to the top
+    // Each layer is spaced about 150-180 pixels apart vertically
+    for (let layer = 0; layer < 25; layer++) {
+        const y = WORLD_HEIGHT - 150 - (layer * 180);
+        if (y < 0) break; // Stop if we've reached the top
+        
+        // Create platforms across the width, with more spacing
+        for (let x = 0; x < WORLD_WIDTH; x += 400 + (layer % 4) * 100) {
+            const platformWidth = 150 + (layer % 3) * 50;
+            if (x + platformWidth > WORLD_WIDTH) break;
+            platforms.push(new Platform(x, y, platformWidth, 20));
+        }
+    }
+    
     return {
-        platforms: [
-            new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50), // Ground
-            // Left section - lowered platforms
-            new Platform(200, WORLD_HEIGHT - 150, 150, 20), // Lowered by 30
-            new Platform(500, WORLD_HEIGHT - 220, 150, 20), // Lowered by 60
-            new Platform(800, WORLD_HEIGHT - 150, 150, 20), // Lowered by 30
-            new Platform(1100, WORLD_HEIGHT - 280, 150, 20), // Lowered by 70
-            new Platform(200, WORLD_HEIGHT - 350, 200, 20), // Lowered by 100
-            new Platform(600, WORLD_HEIGHT - 350, 200, 20), // Lowered by 100
-            // Middle-left section
-            new Platform(2000, WORLD_HEIGHT - 160, 150, 20), // Lowered by 40
-            new Platform(2300, WORLD_HEIGHT - 240, 150, 20), // Lowered by 60
-            new Platform(2600, WORLD_HEIGHT - 150, 150, 20), // Lowered by 30
-            new Platform(2900, WORLD_HEIGHT - 320, 200, 20), // Lowered by 80
-            new Platform(3200, WORLD_HEIGHT - 200, 150, 20), // Lowered by 50
-            // Center section
-            new Platform(4000, WORLD_HEIGHT - 160, 200, 20), // Lowered by 40
-            new Platform(4300, WORLD_HEIGHT - 280, 150, 20), // Lowered by 70
-            new Platform(4600, WORLD_HEIGHT - 150, 150, 20), // Lowered by 30
-            new Platform(4900, WORLD_HEIGHT - 360, 200, 20), // Lowered by 90
-            new Platform(5200, WORLD_HEIGHT - 240, 150, 20), // Lowered by 60
-            // Middle-right section
-            new Platform(6000, WORLD_HEIGHT - 200, 150, 20), // Lowered by 50
-            new Platform(6300, WORLD_HEIGHT - 320, 150, 20), // Lowered by 80
-            new Platform(6600, WORLD_HEIGHT - 150, 150, 20), // Lowered by 30
-            new Platform(6900, WORLD_HEIGHT - 280, 200, 20), // Lowered by 70
-            // Right section
-            new Platform(7400, WORLD_HEIGHT - 160, 150, 20), // Lowered by 40
-            new Platform(7700, WORLD_HEIGHT - 240, 150, 20), // Lowered by 60
-        ],
+        platforms: platforms,
         bouncePads: [
             new BouncePad(250, WORLD_HEIGHT - 170, 50, 20),
             new BouncePad(750, WORLD_HEIGHT - 170, 50, 20),
@@ -656,44 +643,26 @@ function getLevel1() {
 }
 
 function getLevel2() {
+    const platforms = [
+        new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50), // Ground
+    ];
+    
+    // Generate platforms in layers going up to the top
+    // Each layer is spaced about 150-180 pixels apart vertically
+    for (let layer = 0; layer < 25; layer++) {
+        const y = WORLD_HEIGHT - 150 - (layer * 180);
+        if (y < 0) break; // Stop if we've reached the top
+        
+        // Create platforms across the width, with more spacing
+        for (let x = 0; x < WORLD_WIDTH; x += 400 + (layer % 4) * 100) {
+            const platformWidth = 150 + (layer % 3) * 50;
+            if (x + platformWidth > WORLD_WIDTH) break;
+            platforms.push(new Platform(x, y, platformWidth, 20));
+        }
+    }
+    
     return {
-        platforms: [
-            new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50), // Ground
-            // Left section
-            new Platform(150, WORLD_HEIGHT - 150, 100, 20),
-            new Platform(350, WORLD_HEIGHT - 230, 100, 20),
-            new Platform(550, WORLD_HEIGHT - 310, 100, 20),
-            new Platform(750, WORLD_HEIGHT - 230, 100, 20),
-            new Platform(950, WORLD_HEIGHT - 150, 100, 20),
-            new Platform(1150, WORLD_HEIGHT - 230, 100, 20),
-            new Platform(300, WORLD_HEIGHT - 410, 200, 20),
-            new Platform(700, WORLD_HEIGHT - 410, 200, 20),
-            new Platform(500, WORLD_HEIGHT - 490, 300, 20),
-            // Middle-left section
-            new Platform(2000, WORLD_HEIGHT - 200, 100, 20),
-            new Platform(2200, WORLD_HEIGHT - 320, 100, 20),
-            new Platform(2400, WORLD_HEIGHT - 150, 100, 20),
-            new Platform(2600, WORLD_HEIGHT - 400, 200, 20),
-            new Platform(2800, WORLD_HEIGHT - 250, 100, 20),
-            new Platform(3000, WORLD_HEIGHT - 480, 300, 20),
-            // Center section
-            new Platform(4000, WORLD_HEIGHT - 150, 100, 20),
-            new Platform(4200, WORLD_HEIGHT - 280, 100, 20),
-            new Platform(4400, WORLD_HEIGHT - 410, 200, 20),
-            new Platform(4600, WORLD_HEIGHT - 230, 100, 20),
-            new Platform(4800, WORLD_HEIGHT - 360, 100, 20),
-            new Platform(5000, WORLD_HEIGHT - 490, 300, 20),
-            // Middle-right section
-            new Platform(6000, WORLD_HEIGHT - 200, 100, 20),
-            new Platform(6200, WORLD_HEIGHT - 330, 100, 20),
-            new Platform(6400, WORLD_HEIGHT - 160, 100, 20),
-            new Platform(6600, WORLD_HEIGHT - 420, 200, 20),
-            new Platform(6800, WORLD_HEIGHT - 270, 100, 20),
-            // Right section
-            new Platform(7400, WORLD_HEIGHT - 150, 100, 20),
-            new Platform(7600, WORLD_HEIGHT - 300, 100, 20),
-            new Platform(7800, WORLD_HEIGHT - 450, 200, 20),
-        ],
+        platforms: platforms,
         bouncePads: [
             new BouncePad(175, WORLD_HEIGHT - 170, 50, 20),
             new BouncePad(575, WORLD_HEIGHT - 330, 50, 20),
@@ -719,52 +688,26 @@ function getLevel2() {
 }
 
 function getLevel3() {
+    const platforms = [
+        new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50), // Ground
+    ];
+    
+    // Generate platforms in layers going up to the top
+    // Each layer is spaced about 120-150 pixels apart vertically
+    for (let layer = 0; layer < 40; layer++) {
+        const y = WORLD_HEIGHT - 150 - (layer * 120);
+        if (y < 0) break; // Stop if we've reached the top
+        
+        // Create platforms across the width, with some variation
+        for (let x = 0; x < WORLD_WIDTH; x += 180 + (layer % 5) * 30) {
+            const platformWidth = 100 + (layer % 3) * 60;
+            if (x + platformWidth > WORLD_WIDTH) break;
+            platforms.push(new Platform(x, y, platformWidth, 20));
+        }
+    }
+    
     return {
-        platforms: [
-            new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50), // Ground
-            // Left section - low row
-            new Platform(100, WORLD_HEIGHT - 180, 120, 20),
-            new Platform(300, WORLD_HEIGHT - 180, 120, 20),
-            new Platform(500, WORLD_HEIGHT - 180, 120, 20),
-            new Platform(700, WORLD_HEIGHT - 180, 120, 20),
-            new Platform(900, WORLD_HEIGHT - 180, 120, 20),
-            new Platform(1100, WORLD_HEIGHT - 180, 120, 20),
-            // Left section - medium row
-            new Platform(200, WORLD_HEIGHT - 310, 120, 20),
-            new Platform(400, WORLD_HEIGHT - 310, 120, 20),
-            new Platform(600, WORLD_HEIGHT - 310, 120, 20),
-            new Platform(800, WORLD_HEIGHT - 310, 120, 20),
-            new Platform(1000, WORLD_HEIGHT - 310, 120, 20),
-            // Left section - high platforms
-            new Platform(300, WORLD_HEIGHT - 440, 200, 20),
-            new Platform(700, WORLD_HEIGHT - 440, 200, 20),
-            new Platform(500, WORLD_HEIGHT - 570, 300, 20),
-            // Middle-left section
-            new Platform(2000, WORLD_HEIGHT - 200, 120, 20),
-            new Platform(2200, WORLD_HEIGHT - 200, 120, 20),
-            new Platform(2400, WORLD_HEIGHT - 330, 120, 20),
-            new Platform(2600, WORLD_HEIGHT - 330, 120, 20),
-            new Platform(2800, WORLD_HEIGHT - 460, 200, 20),
-            new Platform(3000, WORLD_HEIGHT - 200, 120, 20),
-            // Center section
-            new Platform(4000, WORLD_HEIGHT - 180, 120, 20),
-            new Platform(4200, WORLD_HEIGHT - 180, 120, 20),
-            new Platform(4400, WORLD_HEIGHT - 310, 120, 20),
-            new Platform(4600, WORLD_HEIGHT - 310, 120, 20),
-            new Platform(4800, WORLD_HEIGHT - 440, 200, 20),
-            new Platform(5000, WORLD_HEIGHT - 570, 300, 20),
-            new Platform(5200, WORLD_HEIGHT - 180, 120, 20),
-            // Middle-right section
-            new Platform(6000, WORLD_HEIGHT - 200, 120, 20),
-            new Platform(6200, WORLD_HEIGHT - 330, 120, 20),
-            new Platform(6400, WORLD_HEIGHT - 330, 120, 20),
-            new Platform(6600, WORLD_HEIGHT - 460, 200, 20),
-            new Platform(6800, WORLD_HEIGHT - 200, 120, 20),
-            // Right section
-            new Platform(7400, WORLD_HEIGHT - 180, 120, 20),
-            new Platform(7600, WORLD_HEIGHT - 180, 120, 20),
-            new Platform(7800, WORLD_HEIGHT - 310, 120, 20),
-        ],
+        platforms: platforms,
         bouncePads: [
             new BouncePad(150, WORLD_HEIGHT - 200, 50, 20),
             new BouncePad(550, WORLD_HEIGHT - 200, 50, 20),
