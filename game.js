@@ -560,25 +560,33 @@ class BouncePad {
         this.y = y;
         this.width = width;
         this.height = height;
-        this.bouncePower = 15;
+        this.bouncePower = 33; // Adjusted to jump approximately 5 platform heights (platforms are ~180px apart)
     }
 
     draw() {
-        if (!ctx) return;
-        ctx.fillStyle = '#00ff00';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.strokeStyle = '#00cc00';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(this.x, this.y, this.width, this.height);
+        if (!ctx || !worldTileset) return;
         
-        // Draw arrow up
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.moveTo(this.x + this.width / 2, this.y + 5);
-        ctx.lineTo(this.x + this.width / 2 - 8, this.y + this.height - 5);
-        ctx.lineTo(this.x + this.width / 2 + 8, this.y + this.height - 5);
-        ctx.closePath();
-        ctx.fill();
+        // Disable image smoothing for pixel-perfect rendering
+        ctx.imageSmoothingEnabled = false;
+        
+        // Calculate how many tiles we need to draw
+        const numTiles = Math.ceil(this.width / TILE_SIZE);
+        
+        // Tile 5 is at position 5 * TILE_SIZE = 80 pixels from the left
+        const spriteX = 5 * TILE_SIZE; // Tile 5
+        const spriteY = 0;
+        
+        // Draw each tile in the bounce pad
+        for (let i = 0; i < numTiles; i++) {
+            const tileX = this.x + (i * TILE_SIZE);
+            const drawWidth = Math.min(TILE_SIZE, this.x + this.width - tileX);
+            
+            ctx.drawImage(
+                worldTileset,
+                spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile 5 from tileset
+                tileX, this.y, drawWidth, this.height // Destination: position on canvas
+            );
+        }
     }
 
     checkCollision(player) {
@@ -659,13 +667,38 @@ function getLevel1() {
     return {
         platforms: platforms,
         bouncePads: [
+            // Ground level bounce pads
             new BouncePad(250, WORLD_HEIGHT - 170, 50, 20),
             new BouncePad(750, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(1250, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(1750, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(2250, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(2750, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(3250, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(3750, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(4250, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(4750, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(5250, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(5750, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(6250, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(6750, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(7250, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(7750, WORLD_HEIGHT - 170, 50, 20),
+            // Higher level bounce pads
             new BouncePad(1150, WORLD_HEIGHT - 300, 50, 20),
-            new BouncePad(2050, WORLD_HEIGHT - 180, 50, 20),
-            new BouncePad(4050, WORLD_HEIGHT - 180, 50, 20),
-            new BouncePad(6050, WORLD_HEIGHT - 220, 50, 20),
-            new BouncePad(7450, WORLD_HEIGHT - 180, 50, 20),
+            new BouncePad(2050, WORLD_HEIGHT - 300, 50, 20),
+            new BouncePad(3050, WORLD_HEIGHT - 300, 50, 20),
+            new BouncePad(4050, WORLD_HEIGHT - 300, 50, 20),
+            new BouncePad(5050, WORLD_HEIGHT - 300, 50, 20),
+            new BouncePad(6050, WORLD_HEIGHT - 300, 50, 20),
+            new BouncePad(7050, WORLD_HEIGHT - 300, 50, 20),
+            // Even higher bounce pads
+            new BouncePad(1550, WORLD_HEIGHT - 480, 50, 20),
+            new BouncePad(2550, WORLD_HEIGHT - 480, 50, 20),
+            new BouncePad(3550, WORLD_HEIGHT - 480, 50, 20),
+            new BouncePad(4550, WORLD_HEIGHT - 480, 50, 20),
+            new BouncePad(5550, WORLD_HEIGHT - 480, 50, 20),
+            new BouncePad(6550, WORLD_HEIGHT - 480, 50, 20),
         ],
         teleports: [
             new Teleport(100, WORLD_HEIGHT - 100, WORLD_WIDTH - 150, WORLD_HEIGHT - 100),
@@ -706,14 +739,42 @@ function getLevel2() {
     return {
         platforms: platforms,
         bouncePads: [
+            // Ground level bounce pads
             new BouncePad(175, WORLD_HEIGHT - 170, 50, 20),
-            new BouncePad(575, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(575, WORLD_HEIGHT - 170, 50, 20),
             new BouncePad(975, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(1375, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(1775, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(2175, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(2575, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(2975, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(3375, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(3775, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(4175, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(4575, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(4975, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(5375, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(5775, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(6175, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(6575, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(6975, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(7375, WORLD_HEIGHT - 170, 50, 20),
+            // Higher level bounce pads
+            new BouncePad(575, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(1575, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(2575, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(3575, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(4575, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(5575, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(6575, WORLD_HEIGHT - 330, 50, 20),
+            // Even higher bounce pads
             new BouncePad(550, WORLD_HEIGHT - 510, 50, 20),
-            new BouncePad(2050, WORLD_HEIGHT - 220, 50, 20),
-            new BouncePad(4050, WORLD_HEIGHT - 170, 50, 20),
-            new BouncePad(6050, WORLD_HEIGHT - 220, 50, 20),
-            new BouncePad(7450, WORLD_HEIGHT - 170, 50, 20),
+            new BouncePad(1550, WORLD_HEIGHT - 510, 50, 20),
+            new BouncePad(2550, WORLD_HEIGHT - 510, 50, 20),
+            new BouncePad(3550, WORLD_HEIGHT - 510, 50, 20),
+            new BouncePad(4550, WORLD_HEIGHT - 510, 50, 20),
+            new BouncePad(5550, WORLD_HEIGHT - 510, 50, 20),
+            new BouncePad(6550, WORLD_HEIGHT - 510, 50, 20),
         ],
         teleports: [
             new Teleport(50, WORLD_HEIGHT - 100, WORLD_WIDTH - 100, WORLD_HEIGHT - 500),
@@ -753,16 +814,60 @@ function getLevel3() {
     return {
         platforms: platforms,
         bouncePads: [
+            // Ground level bounce pads
             new BouncePad(150, WORLD_HEIGHT - 200, 50, 20),
             new BouncePad(550, WORLD_HEIGHT - 200, 50, 20),
             new BouncePad(950, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(1350, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(1750, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(2150, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(2550, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(2950, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(3350, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(3750, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(4150, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(4550, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(4950, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(5350, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(5750, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(6150, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(6550, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(6950, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(7350, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(7750, WORLD_HEIGHT - 200, 50, 20),
+            // Higher level bounce pads
             new BouncePad(350, WORLD_HEIGHT - 330, 50, 20),
             new BouncePad(750, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(1150, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(1550, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(1950, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(2350, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(2750, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(3150, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(3550, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(3950, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(4350, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(4750, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(5150, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(5550, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(5950, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(6350, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(6750, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(7150, WORLD_HEIGHT - 330, 50, 20),
+            new BouncePad(7550, WORLD_HEIGHT - 330, 50, 20),
+            // Even higher bounce pads
             new BouncePad(600, WORLD_HEIGHT - 590, 50, 20),
-            new BouncePad(2050, WORLD_HEIGHT - 220, 50, 20),
-            new BouncePad(4050, WORLD_HEIGHT - 200, 50, 20),
-            new BouncePad(6050, WORLD_HEIGHT - 220, 50, 20),
-            new BouncePad(7450, WORLD_HEIGHT - 200, 50, 20),
+            new BouncePad(1200, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(1800, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(2400, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(3000, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(3600, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(4200, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(4800, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(5400, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(6000, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(6600, WORLD_HEIGHT - 590, 50, 20),
+            new BouncePad(7200, WORLD_HEIGHT - 590, 50, 20),
         ],
         teleports: [
             new Teleport(50, WORLD_HEIGHT - 100, WORLD_WIDTH - 100, WORLD_HEIGHT - 600),
