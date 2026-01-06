@@ -9,6 +9,9 @@ let gameState = {
     playerCount: 2,
     gameRunning: false,
     startTime: null,
+    gameDuration: 60, // 60 seconds (1 minute)
+    scores: {}, // Player scores: { playerId: score }
+    roundProcessed: false, // Track if current round end has been processed
     bouncePads: [],
     teleports: [],
     currentLevelData: null,
@@ -187,7 +190,7 @@ class Player {
         this.color = color;
         this.id = id;
         this.speed = 5;
-        this.isIt = id === 0; // First player is "it" initially
+        this.isIt = false; // Will be set randomly in initPlayers()
         this.velocityX = 0;
         this.velocityY = 0;
         this.onGround = false;
@@ -784,16 +787,23 @@ function initPlayers() {
     const colors = ['#ff4444', '#4444ff', '#44ff44', '#ff44ff'];
     const level = levelGenerators[gameState.currentLevel]();
     
+    // Initialize scores if not already set
+    for (let i = 0; i < gameState.playerCount; i++) {
+        if (gameState.scores[i] === undefined) {
+            gameState.scores[i] = 0;
+        }
+    }
+    
     for (let i = 0; i < gameState.playerCount; i++) {
         const spawn = level.spawnPoints[i];
         const player = new Player(spawn.x, spawn.y, colors[i], i);
         gameState.players.push(player);
     }
     
-    // First player is "it"
-    gameState.players[0].isIt = true;
-    for (let i = 1; i < gameState.players.length; i++) {
-        gameState.players[i].isIt = false;
+    // Random player is "it"
+    const randomItIndex = Math.floor(Math.random() * gameState.players.length);
+    for (let i = 0; i < gameState.players.length; i++) {
+        gameState.players[i].isIt = (i === randomItIndex);
     }
     
     // Immediately position camera on players
@@ -848,6 +858,9 @@ function loadLevel(levelIndex) {
     
     // Initialize players first (this will set camera position)
     initPlayers();
+    
+    // Update score display after players are initialized
+    updateScoreDisplay();
 }
 
 // Input handling
@@ -1071,16 +1084,122 @@ function gameLoop() {
     // Restore transform
     ctx.restore();
     
-    // Update timer
+    // Update timer (countdown)
     if (gameState.startTime) {
         const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
-        document.getElementById('timer').textContent = 
-            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        const remaining = Math.max(0, gameState.gameDuration - elapsed);
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+        const timerElement = document.getElementById('timer');
+        if (timerElement) {
+            timerElement.textContent = 
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        // Check if time is up (only once per round)
+        if (remaining <= 0 && !gameState.roundProcessed) {
+            // Time's up! Award point to player who is NOT "it"
+            const playerNotIt = gameState.players.find(p => !p.isIt);
+            if (playerNotIt) {
+                gameState.scores[playerNotIt.id] = (gameState.scores[playerNotIt.id] || 0) + 1;
+                console.log(`Tid er ute! Spiller ${playerNotIt.id + 1} får 1 poeng!`);
+                updateScoreDisplay();
+                
+                // Mark this round as processed
+                gameState.roundProcessed = true;
+                
+                // Reset timer for next round
+                gameState.startTime = Date.now();
+            }
+        }
+        
+        // Reset roundProcessed flag when new round starts (remaining time is back to full duration)
+        if (remaining >= gameState.gameDuration - 1) {
+            gameState.roundProcessed = false;
+        }
     }
     
     requestAnimationFrame(gameLoop);
+}
+
+// Update score display with character graphics
+function updateScoreDisplay() {
+    const scoreContainer = document.getElementById('score-container');
+    if (!scoreContainer) return;
+    
+    // Clear existing score items
+    scoreContainer.innerHTML = '';
+    
+    // Create score display for each player
+    gameState.players.forEach((player, index) => {
+        const score = gameState.scores[player.id] || 0;
+        
+        // Create score item container
+        const scoreItem = document.createElement('div');
+        scoreItem.className = 'score-item';
+        
+        // Create character image
+        const characterImg = document.createElement('img');
+        characterImg.className = 'score-character';
+        
+        // Set character image based on player ID
+        let imageSet = false;
+        if (player.id === 0 && piggySprites.length > 0) {
+            // Use first frame of piggy character
+            const spriteData = piggySprites[0];
+            if (spriteData && spriteData.image && spriteData.image.complete) {
+                try {
+                    // Convert canvas/image to data URL
+                    const canvas = document.createElement('canvas');
+                    canvas.width = spriteData.width;
+                    canvas.height = spriteData.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(spriteData.image, 0, 0);
+                    characterImg.src = canvas.toDataURL();
+                    imageSet = true;
+                } catch (e) {
+                    console.warn('Failed to convert piggy sprite to data URL:', e);
+                }
+            }
+        } else if (player.id === 1 && goldenPiggySprites.length > 0) {
+            // Use first frame of golden piggy character
+            const spriteData = goldenPiggySprites[0];
+            if (spriteData && spriteData.image && spriteData.image.complete) {
+                try {
+                    // Convert canvas/image to data URL
+                    const canvas = document.createElement('canvas');
+                    canvas.width = spriteData.width;
+                    canvas.height = spriteData.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(spriteData.image, 0, 0);
+                    characterImg.src = canvas.toDataURL();
+                    imageSet = true;
+                } catch (e) {
+                    console.warn('Failed to convert golden piggy sprite to data URL:', e);
+                }
+            }
+        }
+        
+        // Fallback: use colored square for other players or if image failed
+        if (!imageSet) {
+            characterImg.style.backgroundColor = player.color;
+            characterImg.style.width = '40px';
+            characterImg.style.height = '40px';
+            characterImg.style.border = '2px solid #000';
+        }
+        
+        // Create score number
+        const scoreNumber = document.createElement('div');
+        scoreNumber.className = 'score-number';
+        scoreNumber.textContent = score;
+        
+        // Append to score item
+        scoreItem.appendChild(characterImg);
+        scoreItem.appendChild(scoreNumber);
+        
+        // Append to container
+        scoreContainer.appendChild(scoreItem);
+    });
 }
 
 // UI event handlers
@@ -1095,6 +1214,9 @@ function setupUIHandlers() {
     
     startBtn.addEventListener('click', () => {
         gameState.playerCount = parseInt(document.getElementById('player-count').value);
+        // Reset scores when starting new game
+        gameState.scores = {};
+        gameState.roundProcessed = false;
         loadLevel(gameState.currentLevel);
         gameState.gameRunning = true;
         gameState.startTime = Date.now();
@@ -1102,6 +1224,7 @@ function setupUIHandlers() {
         document.getElementById('menu-screen').classList.remove('active');
         document.getElementById('game-screen').classList.add('active');
         
+        updateScoreDisplay();
         gameLoop();
     });
 
