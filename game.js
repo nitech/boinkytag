@@ -576,18 +576,23 @@ class BouncePad {
         // Calculate how many tiles we need to draw
         const numTiles = Math.ceil(this.width / TILE_SIZE);
         
-        // Tile 5 is at position 5 * TILE_SIZE = 80 pixels from the left
-        const spriteX = 5 * TILE_SIZE; // Tile 5
-        const spriteY = 0;
+        // Calculate tile position in tileset based on tile index (133)
+        // Tiles are arranged horizontally, each tile is 16x16 pixels
+        const tilesPerRow = Math.floor(worldTileset.width / TILE_SIZE);
+        const tileIndex = 133;
+        const tileRow = Math.floor(tileIndex / tilesPerRow);
+        const tileCol = tileIndex % tilesPerRow;
+        const spriteX = tileCol * TILE_SIZE;
+        const spriteY = tileRow * TILE_SIZE;
         
-        // Draw each tile in the bounce pad
+        // Draw each tile in the bounce pad (all using tile 133)
         for (let i = 0; i < numTiles; i++) {
             const tileX = this.x + (i * TILE_SIZE);
             const drawWidth = Math.min(TILE_SIZE, this.x + this.width - tileX);
             
             ctx.drawImage(
                 worldTileset,
-                spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile 5 from tileset
+                spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile 133 from tileset
                 tileX, this.y, drawWidth, this.height // Destination: position on canvas
             );
         }
