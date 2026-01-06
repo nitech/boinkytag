@@ -517,13 +517,13 @@ class Player {
 
 // Platform class
 class Platform {
-    constructor(x, y, width, height, color = '#8B4513', spriteIndex = 1) {
+    constructor(x, y, width, height, color = '#8B4513', tileIndex = 0) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
         this.color = color;
-        this.spriteIndex = spriteIndex; // 1 or 2 for sprite 1 or sprite 2
+        this.tileIndex = tileIndex; // Tile index: 0, 2, 4, 6, or 7
     }
 
     draw() {
@@ -535,18 +535,22 @@ class Platform {
         // Calculate how many tiles we need to draw
         const numTiles = Math.ceil(this.width / TILE_SIZE);
         
-        // Sprite 1 is at (0, 0) and sprite 2 is at (16, 0) in the tileset
-        const spriteX = (this.spriteIndex - 1) * TILE_SIZE;
-        const spriteY = 0;
+        // Calculate tile position in tileset based on tile index
+        // Tiles are arranged horizontally, each tile is 16x16 pixels
+        const tilesPerRow = Math.floor(worldTileset.width / TILE_SIZE);
+        const tileRow = Math.floor(this.tileIndex / tilesPerRow);
+        const tileCol = this.tileIndex % tilesPerRow;
+        const spriteX = tileCol * TILE_SIZE;
+        const spriteY = tileRow * TILE_SIZE;
         
-        // Draw each tile in the platform
+        // Draw each tile in the platform (all using the same tile index)
         for (let i = 0; i < numTiles; i++) {
             const tileX = this.x + (i * TILE_SIZE);
             const drawWidth = Math.min(TILE_SIZE, this.x + this.width - tileX);
             
             ctx.drawImage(
                 worldTileset,
-                spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: sprite from tileset
+                spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile from tileset
                 tileX, this.y, drawWidth, this.height // Destination: position on canvas
             );
         }
@@ -643,9 +647,12 @@ class Teleport {
 }
 
 // Level definitions (functions that return level data based on world size)
+// Valid tile indices for platforms: 0, 2, 4, 6, 7
+const VALID_PLATFORM_TILES = [0, 2, 4, 6, 7];
+
 function getLevel1() {
     const platforms = [
-        new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50, '#8B4513', 1), // Ground - sprite 1
+        new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50, '#8B4513', 0), // Ground - tile 0
     ];
     
     // Generate platforms in layers going up to the top
@@ -658,9 +665,9 @@ function getLevel1() {
         for (let x = 0; x < WORLD_WIDTH; x += 400 + (layer % 4) * 100) {
             const platformWidth = 150 + (layer % 3) * 50;
             if (x + platformWidth > WORLD_WIDTH) break;
-            // Alternate between sprite 1 and 2
-            const spriteIndex = (layer % 2 === 0) ? 1 : 2;
-            platforms.push(new Platform(x, y, platformWidth, 20, '#8B4513', spriteIndex));
+            // Select a random valid tile index for this platform
+            const tileIndex = VALID_PLATFORM_TILES[Math.floor(Math.random() * VALID_PLATFORM_TILES.length)];
+            platforms.push(new Platform(x, y, platformWidth, 20, '#8B4513', tileIndex));
         }
     }
     
@@ -717,7 +724,7 @@ function getLevel1() {
 
 function getLevel2() {
     const platforms = [
-        new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50, '#8B4513', 2), // Ground - sprite 2
+        new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50, '#8B4513', 2), // Ground - tile 2
     ];
     
     // Generate platforms in layers going up to the top
@@ -730,9 +737,9 @@ function getLevel2() {
         for (let x = 0; x < WORLD_WIDTH; x += 400 + (layer % 4) * 100) {
             const platformWidth = 150 + (layer % 3) * 50;
             if (x + platformWidth > WORLD_WIDTH) break;
-            // Alternate between sprite 1 and 2
-            const spriteIndex = (layer % 2 === 0) ? 2 : 1;
-            platforms.push(new Platform(x, y, platformWidth, 20, '#8B4513', spriteIndex));
+            // Select a random valid tile index for this platform
+            const tileIndex = VALID_PLATFORM_TILES[Math.floor(Math.random() * VALID_PLATFORM_TILES.length)];
+            platforms.push(new Platform(x, y, platformWidth, 20, '#8B4513', tileIndex));
         }
     }
     
@@ -792,7 +799,7 @@ function getLevel2() {
 
 function getLevel3() {
     const platforms = [
-        new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50, '#8B4513', 1), // Ground - sprite 1
+        new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50, '#8B4513', 4), // Ground - tile 4
     ];
     
     // Generate platforms in layers going up to the top
@@ -805,9 +812,9 @@ function getLevel3() {
         for (let x = 0; x < WORLD_WIDTH; x += 180 + (layer % 5) * 30) {
             const platformWidth = 100 + (layer % 3) * 60;
             if (x + platformWidth > WORLD_WIDTH) break;
-            // Alternate between sprite 1 and 2 based on x position
-            const spriteIndex = (Math.floor(x / 200) % 2 === 0) ? 1 : 2;
-            platforms.push(new Platform(x, y, platformWidth, 20, '#8B4513', spriteIndex));
+            // Select a random valid tile index for this platform
+            const tileIndex = VALID_PLATFORM_TILES[Math.floor(Math.random() * VALID_PLATFORM_TILES.length)];
+            platforms.push(new Platform(x, y, platformWidth, 20, '#8B4513', tileIndex));
         }
     }
     
@@ -1345,6 +1352,127 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', setupUIHandlers);
 } else {
     setupUIHandlers();
+}
+
+// Tileset viewer functionality
+function showTilesetViewer() {
+    if (!worldTileset || !worldTileset.complete) {
+        alert('Tileset er ikke lastet ennå. Vent litt og prøv igjen.');
+        return;
+    }
+    
+    const modal = document.getElementById('tileset-viewer-modal');
+    const content = document.getElementById('tileset-viewer-content');
+    
+    if (!modal || !content) return;
+    
+    // Calculate tiles per row and total rows
+    const tilesPerRow = Math.floor(worldTileset.width / TILE_SIZE);
+    const totalRows = Math.floor(worldTileset.height / TILE_SIZE);
+    const totalTiles = tilesPerRow * totalRows;
+    
+    // Create grid container
+    const grid = document.createElement('div');
+    grid.className = 'tileset-grid';
+    
+    // Create a canvas to extract individual tiles
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = TILE_SIZE;
+    tempCanvas.height = TILE_SIZE;
+    const tempCtx = tempCanvas.getContext('2d', { alpha: true });
+    tempCtx.imageSmoothingEnabled = false;
+    
+    // Create tile items
+    for (let tileIndex = 0; tileIndex < totalTiles; tileIndex++) {
+        const row = Math.floor(tileIndex / tilesPerRow);
+        const col = tileIndex % tilesPerRow;
+        
+        const tileX = col * TILE_SIZE;
+        const tileY = row * TILE_SIZE;
+        
+        // Extract tile from tileset
+        tempCtx.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
+        tempCtx.drawImage(
+            worldTileset,
+            tileX, tileY, TILE_SIZE, TILE_SIZE,
+            0, 0, TILE_SIZE, TILE_SIZE
+        );
+        
+        // Create tile item
+        const tileItem = document.createElement('div');
+        tileItem.className = 'tile-item';
+        
+        // Create preview image
+        const preview = document.createElement('img');
+        preview.className = 'tile-preview';
+        preview.src = tempCanvas.toDataURL();
+        
+        // Create tile number
+        const tileNumber = document.createElement('div');
+        tileNumber.className = 'tile-number';
+        tileNumber.textContent = `Tile ${tileIndex}`;
+        
+        // Create coordinates
+        const coords = document.createElement('div');
+        coords.className = 'tile-coords';
+        coords.textContent = `X: ${tileX}, Y: ${tileY}`;
+        
+        tileItem.appendChild(preview);
+        tileItem.appendChild(tileNumber);
+        tileItem.appendChild(coords);
+        
+        grid.appendChild(tileItem);
+    }
+    
+    content.innerHTML = '';
+    content.appendChild(grid);
+    
+    modal.classList.add('active');
+}
+
+function closeTilesetViewer() {
+    const modal = document.getElementById('tileset-viewer-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Setup tileset viewer handlers
+function setupTilesetViewer() {
+    const viewerBtn = document.getElementById('tileset-viewer-btn');
+    const closeBtn = document.getElementById('close-tileset-viewer');
+    const modal = document.getElementById('tileset-viewer-modal');
+    
+    if (viewerBtn) {
+        viewerBtn.addEventListener('click', showTilesetViewer);
+    }
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeTilesetViewer);
+    }
+    
+    if (modal) {
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeTilesetViewer();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                closeTilesetViewer();
+            }
+        });
+    }
+}
+
+// Setup tileset viewer when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupTilesetViewer);
+} else {
+    setupTilesetViewer();
 }
 
 document.querySelectorAll('.level-btn').forEach(btn => {
