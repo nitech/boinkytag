@@ -1,47 +1,66 @@
 <!DOCTYPE html>
 <html lang="no">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TAG - Multiplayer Game</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div id="menu-screen" class="screen active">
+        <canvas id="menuCanvas"
+            style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: -1; pointer-events: none;"></canvas>
         <div class="menu-container">
             <h1>TAG</h1>
             <p class="subtitle">Et lokalt multiplayer spill av catch!</p>
-            
-            <div class="player-select">
-                <label>Antall spillere:</label>
-                <select id="player-count">
-                    <option value="2">2 spillere</option>
-                    <option value="3">3 spillere</option>
-                    <option value="4">4 spillere</option>
-                </select>
-            </div>
 
-            <div class="level-select">
-                <h2>Velg verden:</h2>
-                <div class="level-buttons">
-                    <button class="level-btn" data-level="0">Verden 1</button>
-                    <button class="level-btn" data-level="1">Verden 2</button>
-                    <button class="level-btn" data-level="2">Verden 3</button>
+            <div class="selection-group">
+                <div class="selection-section player-select">
+                    <label>Antall spillere:</label>
+                    <div class="player-count-buttons">
+                        <button class="player-count-btn" data-count="2">2</button>
+                        <button class="player-count-btn" data-count="3">3</button>
+                        <button class="player-count-btn" data-count="4">4</button>
+                    </div>
+                </div>
+
+                <div class="selection-section level-select">
+                    <h2>Velg verden:</h2>
+                    <div class="level-buttons">
+                        <button class="level-btn" data-level="0">Verden 1</button>
+                        <button class="level-btn" data-level="1">Verden 2</button>
+                        <button class="level-btn" data-level="2">Verden 3</button>
+                    </div>
                 </div>
             </div>
 
             <div class="controls-info">
-                <h3>Kontroller:</h3>
+                <h3>Trykk på knappen under for å starte, eller se kontrollene her:</h3>
                 <div class="controls-grid">
-                    <div>Spiller 1: <kbd>W</kbd> <kbd>A</kbd> <kbd>D</kbd></div>
-                    <div>Spiller 2: <kbd>↑</kbd> <kbd>←</kbd> <kbd>→</kbd></div>
-                    <div>Spiller 3: <kbd>I</kbd> <kbd>J</kbd> <kbd>L</kbd></div>
-                    <div>Spiller 4: <kbd>T</kbd> <kbd>F</kbd> <kbd>H</kbd></div>
+                    <div class="control-item" id="controls-p1"><span class="char-icon" id="icon-p1">P1</span>
+                        <div><kbd>W</kbd><kbd>A</kbd><kbd>D</kbd></div>
+                    </div>
+                    <div class="control-item" id="controls-p2"><span class="char-icon" id="icon-p2">P2</span>
+                        <div><kbd>↑</kbd><kbd>←</kbd><kbd>→</kbd></div>
+                    </div>
+                    <div class="control-item" id="controls-p3"><span class="char-icon" id="icon-p3">P3</span>
+                        <div><kbd>I</kbd><kbd>J</kbd><kbd>L</kbd></div>
+                    </div>
+                    <div class="control-item" id="controls-p4"><span class="char-icon" id="icon-p4">P4</span>
+                        <div><kbd>T</kbd><kbd>F</kbd><kbd>H</kbd></div>
+                    </div>
                 </div>
             </div>
 
-            <button id="start-btn" class="start-btn">Start Spill</button>
-            <button id="tileset-viewer-btn" class="tileset-viewer-btn">Vis Tileset</button>
+            <div class="menu-footer">
+                <button id="start-btn" class="start-btn">Start Spill</button>
+                <button id="tileset-viewer-btn" class="tileset-viewer-btn">Innstillinger</button>
+            </div>
         </div>
     </div>
 
@@ -69,6 +88,7 @@
     </div>
 
     <script src="game.js"></script>
+    <script src="menu.js"></script>
 </body>
-</html>
 
+</html>

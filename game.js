@@ -53,11 +53,11 @@ function removeWhiteBackground(img) {
     tempCanvas.width = img.width;
     tempCanvas.height = img.height;
     const tempCtx = tempCanvas.getContext('2d', { alpha: true });
-    
+
     tempCtx.drawImage(img, 0, 0);
     const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
     const data = imageData.data;
-    
+
     // Remove white/light pixels (make them transparent)
     for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
@@ -68,7 +68,7 @@ function removeWhiteBackground(img) {
             data[i + 3] = 0; // Set alpha to 0
         }
     }
-    
+
     tempCtx.putImageData(imageData, 0, 0);
     const newImg = new Image();
     newImg.src = tempCanvas.toDataURL();
@@ -83,7 +83,7 @@ async function loadPiggyCharacter() {
     try {
         const response = await fetch('piggy.json');
         piggyCharacter = await response.json();
-        
+
         // Load all sprites as images
         piggySprites = [];
         if (piggyCharacter.layers && piggyCharacter.layers[0] && piggyCharacter.layers[0].sprites) {
@@ -94,10 +94,10 @@ async function loadPiggyCharacter() {
                     img.onload = resolve;
                     img.onerror = resolve; // Continue even if image fails to load
                 });
-                
+
                 // Remove white background
                 const processedImg = await removeWhiteBackground(img);
-                
+
                 piggySprites.push({
                     image: processedImg,
                     x: sprite.x,
@@ -118,7 +118,7 @@ async function loadGoldenPiggyCharacter() {
     try {
         const response = await fetch('golden_piggy.json');
         goldenPiggyCharacter = await response.json();
-        
+
         // Load all sprites as images
         goldenPiggySprites = [];
         if (goldenPiggyCharacter.layers && goldenPiggyCharacter.layers[0] && goldenPiggyCharacter.layers[0].sprites) {
@@ -129,10 +129,10 @@ async function loadGoldenPiggyCharacter() {
                     img.onload = resolve;
                     img.onerror = resolve; // Continue even if image fails to load
                 });
-                
+
                 // Remove white background
                 const processedImg = await removeWhiteBackground(img);
-                
+
                 goldenPiggySprites.push({
                     image: processedImg,
                     x: sprite.x,
@@ -157,11 +157,11 @@ async function init() {
     }
     ctx = canvas.getContext('2d', { alpha: true });
     resizeCanvas();
-    
+
     // Load characters
     await loadPiggyCharacter();
     await loadGoldenPiggyCharacter();
-    
+
     // Load world tileset
     worldTileset = new Image();
     worldTileset.src = 'world_tileset.png';
@@ -170,6 +170,9 @@ async function init() {
         worldTileset.onerror = reject;
     });
     console.log('World tileset loaded');
+
+    // Update menu character icons once loaded
+    updateMenuCharacterIcons();
 }
 
 // Wait for DOM to be ready
@@ -216,10 +219,10 @@ class Player {
 
     update(platforms) {
         if (!canvas) return;
-        
+
         // Check if boost is active
         const isBoosted = this.boostTime > Date.now();
-        
+
         // Update speed and jump power based on boost
         if (isBoosted) {
             this.speed = this.baseSpeed * 1.5; // 150% speed
@@ -228,7 +231,7 @@ class Player {
             this.speed = this.baseSpeed;
             this.jumpPower = this.baseJumpPower;
         }
-        
+
         // Emit boost particles while boosted
         if (isBoosted) {
             const currentTime = Date.now();
@@ -249,7 +252,7 @@ class Player {
                 this.lastTrailUpdate = currentTime;
             }
         }
-        
+
         // Update boost particles
         this.boostParticles = this.boostParticles.filter(particle => {
             particle.life -= 0.016; // Decay ~60fps, ~1 second lifetime
@@ -258,7 +261,7 @@ class Player {
             particle.y += particle.vy;
             return particle.life > 0;
         });
-        
+
         // Apply gravity
         if (!this.onGround) {
             this.velocityY += this.gravity;
@@ -310,18 +313,18 @@ class Player {
 
         // Friction
         this.velocityX *= 0.85;
-        
+
         // Update animation state
         this.isMoving = Math.abs(this.velocityX) > 0.1 || Math.abs(this.velocityY) > 0.1;
-        
+
         // Update sparkle trail for player with tag
         if (this.isIt && this.isMoving) {
             const currentTime = Date.now();
             const distance = Math.sqrt(
-                Math.pow(this.x - this.lastTrailPosition.x, 2) + 
+                Math.pow(this.x - this.lastTrailPosition.x, 2) +
                 Math.pow(this.y - this.lastTrailPosition.y, 2)
             );
-            
+
             // Add sparkle to trail if enough time has passed or enough distance moved
             if (currentTime - this.lastTrailUpdate >= this.trailUpdateInterval || distance > 10) {
                 this.sparkleTrail.push({
@@ -336,7 +339,7 @@ class Player {
                 this.lastTrailUpdate = currentTime;
             }
         }
-        
+
         // Update and remove old sparkles from trail
         this.sparkleTrail = this.sparkleTrail.filter(sparkle => {
             sparkle.life -= 0.008; // Decay slower (longer lasting)
@@ -344,7 +347,7 @@ class Player {
             sparkle.x += Math.sin(sparkle.angle) * 0.5; // Slight horizontal drift
             return sparkle.life > 0;
         });
-        
+
         // Update animation frame if moving (for players with character sprites)
         const currentTime = Date.now();
         if (this.id === 0 && piggySprites.length > 0) {
@@ -352,7 +355,7 @@ class Player {
             if (this.isMoving) {
                 const animationSpeed = 150; // Milliseconds per frame
                 const timeSinceLastFrame = currentTime - this.lastAnimationTime;
-                
+
                 if (timeSinceLastFrame >= animationSpeed) {
                     this.animationFrame = (this.animationFrame + 1) % piggySprites.length;
                     this.lastAnimationTime = currentTime;
@@ -367,7 +370,7 @@ class Player {
             if (this.isMoving) {
                 const animationSpeed = 150; // Milliseconds per frame
                 const timeSinceLastFrame = currentTime - this.lastAnimationTime;
-                
+
                 if (timeSinceLastFrame >= animationSpeed) {
                     this.animationFrame = (this.animationFrame + 1) % goldenPiggySprites.length;
                     this.lastAnimationTime = currentTime;
@@ -383,61 +386,61 @@ class Player {
     collidesWith(rect) {
         // Check if this player collides with another rectangle (player or platform)
         const collision = this.x < rect.x + rect.width &&
-               this.x + this.width > rect.x &&
-               this.y < rect.y + rect.height &&
-               this.y + this.height > rect.y;
+            this.x + this.width > rect.x &&
+            this.y < rect.y + rect.height &&
+            this.y + this.height > rect.y;
         return collision;
     }
 
     draw() {
         if (!ctx) return;
-        
+
         // Check if player has tag immunity (blinking effect)
         const hasImmunity = this.tagImmunityTime > Date.now();
         const blinkAlpha = hasImmunity ? 0.4 + Math.sin(Date.now() / 150) * 0.4 : 1;
-        
+
         // Draw player 1 with piggy character sprite, player 2 with golden piggy, others with colored rectangle
         if (this.id === 0 && piggySprites.length > 0) {
             // Draw piggy character for player 1
             ctx.save();
-            
+
             // Set alpha for blinking if immune
             if (hasImmunity) {
                 ctx.globalAlpha = blinkAlpha;
             } else {
                 ctx.globalAlpha = 1;
             }
-            
+
             // Disable image smoothing for pixel-perfect rendering
             ctx.imageSmoothingEnabled = false;
-            
+
             // Use source-over composite to preserve transparency
             ctx.globalCompositeOperation = 'source-over';
-            
+
             // Find the largest sprite dimensions to calculate scale
             let maxWidth = 0, maxHeight = 0;
             for (let spriteData of piggySprites) {
                 maxWidth = Math.max(maxWidth, spriteData.width);
                 maxHeight = Math.max(maxHeight, spriteData.height);
             }
-            
+
             // Calculate scale to fit player size (40x40)
             const scaleX = this.width / maxWidth;
             const scaleY = this.height / maxHeight;
             const scale = Math.min(scaleX, scaleY);
-            
+
             // Draw the current animation frame (or all sprites if not moving)
             if (this.isMoving) {
                 // Draw only the current animation frame when moving
                 const spriteData = piggySprites[this.animationFrame];
                 const sprite = piggyCharacter.layers[0].sprites[this.animationFrame];
-                
+
                 if (spriteData && spriteData.image.complete && sprite) {
                     const drawX = this.x + (sprite.x || 0) * scale;
                     const drawY = this.y + (sprite.y || 0) * scale;
                     const drawWidth = spriteData.width * scale;
                     const drawHeight = spriteData.height * scale;
-                    
+
                     ctx.drawImage(
                         spriteData.image,
                         drawX,
@@ -451,13 +454,13 @@ class Player {
                 for (let i = 0; i < piggySprites.length; i++) {
                     const spriteData = piggySprites[i];
                     const sprite = piggyCharacter.layers[0].sprites[i];
-                    
+
                     if (spriteData.image.complete && sprite) {
                         const drawX = this.x + (sprite.x || 0) * scale;
                         const drawY = this.y + (sprite.y || 0) * scale;
                         const drawWidth = spriteData.width * scale;
                         const drawHeight = spriteData.height * scale;
-                        
+
                         ctx.drawImage(
                             spriteData.image,
                             drawX,
@@ -468,49 +471,49 @@ class Player {
                     }
                 }
             }
-            
+
             ctx.restore();
         } else if (this.id === 1 && goldenPiggySprites.length > 0) {
             // Draw golden piggy character for player 2
             ctx.save();
-            
+
             // Set alpha for blinking if immune
             if (hasImmunity) {
                 ctx.globalAlpha = blinkAlpha;
             } else {
                 ctx.globalAlpha = 1;
             }
-            
+
             // Disable image smoothing for pixel-perfect rendering
             ctx.imageSmoothingEnabled = false;
-            
+
             // Use source-over composite to preserve transparency
             ctx.globalCompositeOperation = 'source-over';
-            
+
             // Find the largest sprite dimensions to calculate scale
             let maxWidth = 0, maxHeight = 0;
             for (let spriteData of goldenPiggySprites) {
                 maxWidth = Math.max(maxWidth, spriteData.width);
                 maxHeight = Math.max(maxHeight, spriteData.height);
             }
-            
+
             // Calculate scale to fit player size (40x40)
             const scaleX = this.width / maxWidth;
             const scaleY = this.height / maxHeight;
             const scale = Math.min(scaleX, scaleY);
-            
+
             // Draw the current animation frame (or all sprites if not moving)
             if (this.isMoving) {
                 // Draw only the current animation frame when moving
                 const spriteData = goldenPiggySprites[this.animationFrame];
                 const sprite = goldenPiggyCharacter.layers[0].sprites[this.animationFrame];
-                
+
                 if (spriteData && spriteData.image.complete && sprite) {
                     const drawX = this.x + (sprite.x || 0) * scale;
                     const drawY = this.y + (sprite.y || 0) * scale;
                     const drawWidth = spriteData.width * scale;
                     const drawHeight = spriteData.height * scale;
-                    
+
                     ctx.drawImage(
                         spriteData.image,
                         drawX,
@@ -524,13 +527,13 @@ class Player {
                 for (let i = 0; i < goldenPiggySprites.length; i++) {
                     const spriteData = goldenPiggySprites[i];
                     const sprite = goldenPiggyCharacter.layers[0].sprites[i];
-                    
+
                     if (spriteData.image.complete && sprite) {
                         const drawX = this.x + (sprite.x || 0) * scale;
                         const drawY = this.y + (sprite.y || 0) * scale;
                         const drawWidth = spriteData.width * scale;
                         const drawHeight = spriteData.height * scale;
-                        
+
                         ctx.drawImage(
                             spriteData.image,
                             drawX,
@@ -541,7 +544,7 @@ class Player {
                     }
                 }
             }
-            
+
             ctx.restore();
         } else {
             // Apply blinking effect if immune (for other players)
@@ -554,22 +557,22 @@ class Player {
             ctx.shadowBlur = 5;
             ctx.shadowOffsetX = 2;
             ctx.shadowOffsetY = 2;
-            
+
             // Draw player
             ctx.fillStyle = this.color;
             ctx.fillRect(this.x, this.y, this.width, this.height);
-            
+
             // Reset shadow
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            
+
             // Draw border (thicker for better visibility)
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 4;
             ctx.strokeRect(this.x, this.y, this.width, this.height);
-            
+
             // Draw player number for debugging
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 20px Arial';
@@ -582,35 +585,35 @@ class Player {
         if (this.isIt) {
             ctx.save();
             ctx.imageSmoothingEnabled = false;
-            
+
             const time = Date.now();
             const centerX = this.x + this.width / 2;
             const centerY = this.y - 28; // slightly above head
-            
+
             // Bright cycling colors
             const hue1 = (time * 0.04) % 360;
             const hue2 = (hue1 + 120) % 360;
             const color1 = `hsl(${hue1}, 90%, 70%)`;
             const color2 = `hsl(${hue2}, 95%, 65%)`;
-            
+
             // Star params (two stars with different speeds and sizes)
             const stars = [
                 { radius: 10, points: 5, innerScale: 0.45, orbit: 6, rotationSpeed: 0.003, color: color1 },
                 { radius: 13, points: 5, innerScale: 0.5, orbit: 10, rotationSpeed: -0.0045, color: color2 }
             ];
-            
+
             for (let star of stars) {
                 ctx.save();
-                
+
                 // Orbit rotation
                 const orbitAngle = time * star.rotationSpeed;
                 const orbitX = centerX + Math.cos(orbitAngle) * star.orbit;
                 const orbitY = centerY + Math.sin(orbitAngle) * star.orbit;
-                
+
                 // Star self rotation
                 ctx.translate(orbitX, orbitY);
                 ctx.rotate(orbitAngle * 2);
-                
+
                 // Draw pixelated star using a simple pattern (no outline)
                 // Add subtle hue variance per pixel for sparkle
                 const hueMatch = /hsl\(([^,]+),/i.exec(star.color);
@@ -623,7 +626,7 @@ class Player {
                     [-1, 1], [1, 1],
                     [0, 1], [0, 2]
                 ];
-                
+
                 pattern.forEach(([ox, oy], idx) => {
                     const hueJitter = Math.sin(time * 0.01 + idx) * 6; // +/-6 deg
                     const satJitter = Math.sin(time * 0.02 + idx * 0.5) * 5; // +/-5%
@@ -635,36 +638,36 @@ class Player {
                     ctx.fillStyle = `hsl(${Number(baseHue) + hueJitter}, ${satVal}%, ${lightVal}%)`;
                     ctx.fillRect(ox * px, oy * px, px, px);
                 });
-                
+
                 ctx.restore();
             }
-            
+
             ctx.restore();
         }
-        
+
         // Draw sparkle trail when player is moving
         if (this.isIt && this.sparkleTrail.length > 0) {
             ctx.save();
             ctx.imageSmoothingEnabled = false;
-            
+
             const hue = 50; // Yellow hue
             const lightness = 90;
             const saturation = 50;
-            
+
             for (let sparkle of this.sparkleTrail) {
                 const alpha = sparkle.life;
                 const size = sparkle.size * sparkle.life;
-                
+
                 if (size > 0.5 && alpha > 0) {
                     ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}, ${alpha})`;
-                    
+
                     // Draw flame sparkle pattern
                     const flamePattern = [
                         [0, 0], [1, 0], [-1, 0], [0, -1], [1, -1],
                         [0, 1], [1, 1], [-1, 1], [2, 0], [-2, 0],
                         [0, -2], [1, -2]
                     ];
-                    
+
                     for (let pixel of flamePattern) {
                         const pixelX = Math.floor(sparkle.x + pixel[0] * (size / 4));
                         const pixelY = Math.floor(sparkle.y + pixel[1] * (size / 4));
@@ -673,19 +676,19 @@ class Player {
                     }
                 }
             }
-            
+
             ctx.restore();
         }
-        
+
         // Draw boost particles
         if (this.boostParticles.length > 0) {
             ctx.save();
             ctx.imageSmoothingEnabled = false;
-            
+
             for (let particle of this.boostParticles) {
                 const alpha = particle.life;
                 const size = Math.max(1, Math.floor(particle.size * particle.life));
-                
+
                 if (size > 0 && alpha > 0) {
                     ctx.fillStyle = particle.color;
                     ctx.globalAlpha = alpha;
@@ -698,10 +701,10 @@ class Player {
                     );
                 }
             }
-            
+
             ctx.restore();
         }
-        
+
         // Reset alpha
         ctx.globalAlpha = 1;
     }
@@ -722,13 +725,13 @@ class Platform {
 
     draw() {
         if (!ctx || !worldTileset) return;
-        
+
         // Disable image smoothing for pixel-perfect rendering
         ctx.imageSmoothingEnabled = false;
-        
+
         // Calculate how many whole tiles we can draw (only draw complete tiles)
         const numTiles = Math.floor(this.width / TILE_SIZE);
-        
+
         // Calculate tile position in tileset based on tile index
         // Tiles are arranged horizontally, each tile is 16x16 pixels
         const tilesPerRow = Math.floor(worldTileset.width / TILE_SIZE);
@@ -736,11 +739,11 @@ class Platform {
         const tileCol = this.tileIndex % tilesPerRow;
         const spriteX = tileCol * TILE_SIZE;
         const spriteY = tileRow * TILE_SIZE;
-        
+
         // Draw each whole tile in the platform (all using the same tile index)
         for (let i = 0; i < numTiles; i++) {
             const tileX = this.x + (i * TILE_SIZE);
-            
+
             ctx.drawImage(
                 worldTileset,
                 spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile from tileset
@@ -764,13 +767,13 @@ class BouncePad {
 
     draw() {
         if (!ctx || !worldTileset) return;
-        
+
         // Disable image smoothing for pixel-perfect rendering
         ctx.imageSmoothingEnabled = false;
-        
+
         // Calculate how many whole tiles we can draw (only draw complete tiles)
         const numTiles = Math.floor(this.width / TILE_SIZE);
-        
+
         // Calculate tile position in tileset based on tile index (133)
         // Tiles are arranged horizontally, each tile is 16x16 pixels
         const tilesPerRow = Math.floor(worldTileset.width / TILE_SIZE);
@@ -779,11 +782,11 @@ class BouncePad {
         const tileCol = tileIndex % tilesPerRow;
         const spriteX = tileCol * TILE_SIZE;
         const spriteY = tileRow * TILE_SIZE;
-        
+
         // Draw each whole tile in the bounce pad (all using tile 133)
         for (let i = 0; i < numTiles; i++) {
             const tileX = this.x + (i * TILE_SIZE);
-            
+
             ctx.drawImage(
                 worldTileset,
                 spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile 133 from tileset
@@ -794,9 +797,9 @@ class BouncePad {
 
     checkCollision(player) {
         return player.x < this.x + this.width &&
-               player.x + player.width > this.x &&
-               player.y < this.y + this.height &&
-               player.y + player.height > this.y;
+            player.x + player.width > this.x &&
+            player.y < this.y + this.height &&
+            player.y + player.height > this.y;
     }
 }
 
@@ -817,17 +820,17 @@ class BoostTile {
 
     draw() {
         if (!ctx || !worldTileset) return;
-        
+
         // Disable image smoothing for pixel-perfect rendering
         ctx.imageSmoothingEnabled = false;
-        
+
         // Calculate tile position in tileset based on tile index (87)
         const tilesPerRow = Math.floor(worldTileset.width / TILE_SIZE);
         const tileRow = Math.floor(this.tileIndex / tilesPerRow);
         const tileCol = this.tileIndex % tilesPerRow;
         const spriteX = tileCol * TILE_SIZE;
         const spriteY = tileRow * TILE_SIZE;
-        
+
         // Add pulsing glow effect
         const glowAlpha = 0.3 + Math.sin(this.pulse) * 0.2;
         ctx.save();
@@ -835,7 +838,7 @@ class BoostTile {
         ctx.fillStyle = '#ffff00';
         ctx.fillRect(this.x - 2, this.y - 2, this.width + 4, this.height + 4);
         ctx.restore();
-        
+
         // Draw the tile
         ctx.drawImage(
             worldTileset,
@@ -846,9 +849,9 @@ class BoostTile {
 
     checkCollision(player) {
         return player.x < this.x + this.width &&
-               player.x + player.width > this.x &&
-               player.y < this.y + this.height &&
-               player.y + player.height > this.y;
+            player.x + player.width > this.x &&
+            player.y < this.y + this.height &&
+            player.y + player.height > this.y;
     }
 }
 
@@ -871,7 +874,7 @@ class Teleport {
 
     draw() {
         if (!ctx || this.used) return;
-        
+
         const alpha = 0.5 + Math.sin(this.pulse) * 0.3;
         ctx.globalAlpha = alpha;
         ctx.fillStyle = '#ff00ff';
@@ -879,7 +882,7 @@ class Teleport {
         ctx.strokeStyle = '#ff00ff';
         ctx.lineWidth = 3;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
-        
+
         // Draw teleport symbol
         ctx.fillStyle = '#fff';
         ctx.font = '20px Arial';
@@ -891,9 +894,9 @@ class Teleport {
     checkCollision(player) {
         if (this.used) return false;
         return player.x < this.x + this.width &&
-               player.x + player.width > this.x &&
-               player.y < this.y + this.height &&
-               player.y + player.height > this.y;
+            player.x + player.width > this.x &&
+            player.y < this.y + this.height &&
+            player.y + player.height > this.y;
     }
 }
 
@@ -905,13 +908,13 @@ function getLevel1() {
     const platforms = [
         new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50, '#8B4513', 0), // Ground - tile 0
     ];
-    
+
     // Generate platforms in layers going up to the top
     // Each layer is spaced about 150-180 pixels apart vertically
     for (let layer = 0; layer < 25; layer++) {
         const y = WORLD_HEIGHT - 150 - (layer * 180);
         if (y < 0) break; // Stop if we've reached the top
-        
+
         // Create platforms across the width, with more spacing
         for (let x = 0; x < WORLD_WIDTH; x += 400 + (layer % 4) * 100) {
             let platformWidth = 150 + (layer % 3) * 50;
@@ -924,7 +927,7 @@ function getLevel1() {
             platforms.push(new Platform(x, y, platformWidth, 20, '#8B4513', tileIndex));
         }
     }
-    
+
     // Generate 5 random boost tiles on platforms
     const boostTiles = [];
     const validPlatforms = platforms.filter(p => p.y < WORLD_HEIGHT - 50); // Exclude ground platform
@@ -935,7 +938,7 @@ function getLevel1() {
         const boostY = randomPlatform.y - TILE_SIZE;
         boostTiles.push(new BoostTile(boostX, boostY));
     }
-    
+
     return {
         platforms: platforms,
         boostTiles: boostTiles,
@@ -992,13 +995,13 @@ function getLevel2() {
     const platforms = [
         new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50, '#8B4513', 2), // Ground - tile 2
     ];
-    
+
     // Generate platforms in layers going up to the top
     // Each layer is spaced about 150-180 pixels apart vertically
     for (let layer = 0; layer < 25; layer++) {
         const y = WORLD_HEIGHT - 150 - (layer * 180);
         if (y < 0) break; // Stop if we've reached the top
-        
+
         // Create platforms across the width, with more spacing
         for (let x = 0; x < WORLD_WIDTH; x += 400 + (layer % 4) * 100) {
             let platformWidth = 150 + (layer % 3) * 50;
@@ -1011,7 +1014,7 @@ function getLevel2() {
             platforms.push(new Platform(x, y, platformWidth, 20, '#8B4513', tileIndex));
         }
     }
-    
+
     // Generate 5 random boost tiles on platforms
     const boostTiles = [];
     const validPlatforms = platforms.filter(p => p.y < WORLD_HEIGHT - 50); // Exclude ground platform
@@ -1022,7 +1025,7 @@ function getLevel2() {
         const boostY = randomPlatform.y - TILE_SIZE;
         boostTiles.push(new BoostTile(boostX, boostY));
     }
-    
+
     return {
         platforms: platforms,
         boostTiles: boostTiles,
@@ -1082,13 +1085,13 @@ function getLevel3() {
     const platforms = [
         new Platform(0, WORLD_HEIGHT - 50, WORLD_WIDTH, 50, '#8B4513', 4), // Ground - tile 4
     ];
-    
+
     // Generate platforms in layers going up to the top
     // Each layer is spaced about 120-150 pixels apart vertically
     for (let layer = 0; layer < 40; layer++) {
         const y = WORLD_HEIGHT - 150 - (layer * 120);
         if (y < 0) break; // Stop if we've reached the top
-        
+
         // Create platforms across the width, with some variation
         for (let x = 0; x < WORLD_WIDTH; x += 180 + (layer % 5) * 30) {
             let platformWidth = 100 + (layer % 3) * 60;
@@ -1101,7 +1104,7 @@ function getLevel3() {
             platforms.push(new Platform(x, y, platformWidth, 20, '#8B4513', tileIndex));
         }
     }
-    
+
     // Generate 5 random boost tiles on platforms
     const boostTiles = [];
     const validPlatforms = platforms.filter(p => p.y < WORLD_HEIGHT - 50); // Exclude ground platform
@@ -1112,7 +1115,7 @@ function getLevel3() {
         const boostY = randomPlatform.y - TILE_SIZE;
         boostTiles.push(new BoostTile(boostX, boostY));
     }
-    
+
     return {
         platforms: platforms,
         boostTiles: boostTiles,
@@ -1194,31 +1197,31 @@ function initPlayers() {
     gameState.players = [];
     const colors = ['#ff4444', '#4444ff', '#44ff44', '#ff44ff'];
     const level = levelGenerators[gameState.currentLevel]();
-    
+
     // Initialize scores if not already set
     for (let i = 0; i < gameState.playerCount; i++) {
         if (gameState.scores[i] === undefined) {
             gameState.scores[i] = 0;
         }
     }
-    
+
     for (let i = 0; i < gameState.playerCount; i++) {
         const spawn = level.spawnPoints[i];
         const player = new Player(spawn.x, spawn.y, colors[i], i);
         gameState.players.push(player);
     }
-    
+
     // Random player is "it"
     const randomItIndex = Math.floor(Math.random() * gameState.players.length);
     for (let i = 0; i < gameState.players.length; i++) {
         gameState.players[i].isIt = (i === randomItIndex);
     }
-    
+
     // Immediately position camera on players
     if (gameState.players.length > 0 && canvas) {
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
-        
+
         gameState.players.forEach(player => {
             const centerX = player.x + player.width / 2;
             const centerY = player.y + player.height / 2;
@@ -1227,17 +1230,17 @@ function initPlayers() {
             minY = Math.min(minY, centerY);
             maxY = Math.max(maxY, centerY);
         });
-        
+
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
         gameState.camera.x = centerX;
         gameState.camera.y = centerY;
-        
+
         // Set initial zoom to ensure players are visible
         const distanceX = maxX - minX;
         const distanceY = maxY - minY;
         const padding = 200;
-        
+
         if (distanceX > 10 || distanceY > 10) {
             const desiredZoomX = (canvas.width - padding * 2) / (distanceX + padding * 2);
             const desiredZoomY = (canvas.height - padding * 2) / (distanceY + padding * 2);
@@ -1259,15 +1262,15 @@ function loadLevel(levelIndex) {
     }
     gameState.currentLevel = levelIndex;
     const level = levelGenerators[levelIndex]();
-    
+
     gameState.bouncePads = level.bouncePads;
     gameState.teleports = level.teleports;
     gameState.boostTiles = level.boostTiles;
     gameState.currentLevelData = level;
-    
+
     // Initialize players first (this will set camera position)
     initPlayers();
-    
+
     // Update score display after players are initialized
     updateScoreDisplay();
 }
@@ -1296,20 +1299,20 @@ document.addEventListener('keyup', (e) => {
 
 function handleInput() {
     if (!gameState.gameRunning) return;
-    
+
     gameState.players.forEach((player, index) => {
         if (index >= playerControls.length) return;
-        
+
         const controls = playerControls[index];
         player.velocityX = 0;
-        
+
         if (keys[controls.left]) {
             player.velocityX = -player.speed;
         }
         if (keys[controls.right]) {
             player.velocityX = player.speed;
         }
-        
+
         // Handle jump with double jump support
         if (keysPressed[controls.up]) {
             // Only jump if we haven't used all jumps
@@ -1320,7 +1323,7 @@ function handleInput() {
             }
         }
     });
-    
+
     // Clear all pressed flags after processing all players
     Object.keys(keysPressed).forEach(key => {
         keysPressed[key] = false;
@@ -1330,13 +1333,13 @@ function handleInput() {
 // Update camera based on player positions
 function updateCamera() {
     if (gameState.players.length === 0 || !canvas) return;
-    
+
     const cam = gameState.camera;
-    
+
     // Calculate center point between all players
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
-    
+
     gameState.players.forEach(player => {
         const centerX = player.x + player.width / 2;
         const centerY = player.y + player.height / 2;
@@ -1345,11 +1348,11 @@ function updateCamera() {
         minY = Math.min(minY, centerY);
         maxY = Math.max(maxY, centerY);
     });
-    
+
     // Calculate distance between furthest players
     const distanceX = maxX - minX;
     const distanceY = maxY - minY;
-    
+
     // Calculate desired zoom based on distance
     // Add padding (200 pixels on each side)
     const padding = 200;
@@ -1360,21 +1363,21 @@ function updateCamera() {
     const desiredZoomX = (canvas.width - padding) / (adjustedDistanceX + padding);
     const desiredZoomY = (canvas.height - padding) / (adjustedDistanceY + padding);
     let desiredZoom = Math.min(desiredZoomX, desiredZoomY);
-    
+
     // Clamp zoom
     desiredZoom = Math.max(cam.minZoom, Math.min(cam.maxZoom, desiredZoom));
-    
+
     // Smooth zoom transition
     cam.zoom += (desiredZoom - cam.zoom) * 0.1;
-    
+
     // Calculate camera center (average of all players)
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
-    
+
     // Smooth camera movement
     cam.x += (centerX - cam.x) * 0.1;
     cam.y += (centerY - cam.y) * 0.1;
-    
+
     // Keep camera within world bounds
     const viewWidth = canvas.width / cam.zoom;
     const viewHeight = canvas.height / cam.zoom;
@@ -1385,7 +1388,7 @@ function updateCamera() {
 // Check collisions
 function checkCollisions() {
     if (!gameState.currentLevelData) return;
-    
+
     // Check bounce pads
     gameState.players.forEach(player => {
         gameState.bouncePads.forEach(pad => {
@@ -1395,7 +1398,7 @@ function checkCollisions() {
             }
         });
     });
-    
+
     // Check teleports
     gameState.players.forEach(player => {
         gameState.teleports.forEach(teleport => {
@@ -1406,7 +1409,7 @@ function checkCollisions() {
             }
         });
     });
-    
+
     // Check boost tiles
     gameState.players.forEach(player => {
         for (let i = gameState.boostTiles.length - 1; i >= 0; i--) {
@@ -1414,10 +1417,10 @@ function checkCollisions() {
             if (boostTile.checkCollision(player)) {
                 // Activate boost for 8 seconds
                 player.boostTime = Date.now() + 8000;
-                
+
                 // Remove this boost tile
                 gameState.boostTiles.splice(i, 1);
-                
+
                 // Create a new boost tile on a random platform
                 const level = gameState.currentLevelData;
                 if (level && level.platforms) {
@@ -1429,26 +1432,26 @@ function checkCollisions() {
                         gameState.boostTiles.push(new BoostTile(boostX, boostY));
                     }
                 }
-                
+
                 break; // Only one boost tile per collision
             }
         }
     });
-    
+
     // Check tagging - must be done after all updates
     // Only one player should have tag at a time, so find the player with tag first
     const playerWithTag = gameState.players.find(p => p.isIt);
-    
+
     if (playerWithTag) {
         // Check if player with tag is still immune (2 second cooldown after getting tagged)
         const isImmune = playerWithTag.tagImmunityTime > Date.now();
-        
+
         if (!isImmune) {
             // Check collision with all other players
             for (let otherPlayer of gameState.players) {
                 // Skip if same player
                 if (playerWithTag.id === otherPlayer.id) continue;
-                
+
                 // Check if they are colliding
                 const isColliding = playerWithTag.collidesWith(otherPlayer);
                 if (isColliding) {
@@ -1469,57 +1472,57 @@ function checkCollisions() {
 // Game loop
 function gameLoop() {
     if (!gameState.gameRunning || !canvas || !ctx) return;
-    
+
     // Clear canvas
     ctx.fillStyle = '#2a2a2a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     // Handle input
     handleInput();
-    
+
     // Update teleports
     gameState.teleports.forEach(tp => tp.update());
-    
+
     // Update boost tiles
     gameState.boostTiles.forEach(bt => bt.update());
-    
+
     // Update players
     const level = gameState.currentLevelData;
     gameState.players.forEach(player => {
         player.update(level.platforms);
     });
-    
+
     // Check collisions
     checkCollisions();
-    
+
     // Update camera
     updateCamera();
-    
+
     // Apply camera transform
     ctx.save();
     const cam = gameState.camera;
-    
+
     // Translate to center of screen
     ctx.translate(canvas.width / 2, canvas.height / 2);
-    
+
     // Scale (zoom)
     ctx.scale(cam.zoom, cam.zoom);
-    
+
     // Translate to camera position (inverse)
     ctx.translate(-cam.x, -cam.y);
-    
+
     // Draw level
     level.platforms.forEach(platform => platform.draw());
     gameState.bouncePads.forEach(pad => pad.draw());
     gameState.teleports.forEach(tp => tp.draw());
     gameState.boostTiles.forEach(bt => bt.draw());
-    
+
     // Draw players
     gameState.players.forEach(player => player.draw());
-    
+
     // Restore transform
     ctx.restore();
-    
+
     // Update timer (countdown)
     if (gameState.startTime) {
         const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
@@ -1528,10 +1531,10 @@ function gameLoop() {
         const seconds = remaining % 60;
         const timerElement = document.getElementById('timer');
         if (timerElement) {
-            timerElement.textContent = 
+            timerElement.textContent =
                 `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
-        
+
         // Check if time is up (only once per round)
         if (remaining <= 0 && !gameState.roundProcessed) {
             // Time's up! Award point to player who is NOT "it"
@@ -1540,21 +1543,21 @@ function gameLoop() {
                 gameState.scores[playerNotIt.id] = (gameState.scores[playerNotIt.id] || 0) + 1;
                 console.log(`Tid er ute! Spiller ${playerNotIt.id + 1} får 1 poeng!`);
                 updateScoreDisplay();
-                
+
                 // Mark this round as processed
                 gameState.roundProcessed = true;
-                
+
                 // Reset timer for next round
                 gameState.startTime = Date.now();
             }
         }
-        
+
         // Reset roundProcessed flag when new round starts (remaining time is back to full duration)
         if (remaining >= gameState.gameDuration - 1) {
             gameState.roundProcessed = false;
         }
     }
-    
+
     requestAnimationFrame(gameLoop);
 }
 
@@ -1562,22 +1565,22 @@ function gameLoop() {
 function updateScoreDisplay() {
     const scoreContainer = document.getElementById('score-container');
     if (!scoreContainer) return;
-    
+
     // Clear existing score items
     scoreContainer.innerHTML = '';
-    
+
     // Create score display for each player
     gameState.players.forEach((player, index) => {
         const score = gameState.scores[player.id] || 0;
-        
+
         // Create score item container
         const scoreItem = document.createElement('div');
         scoreItem.className = 'score-item';
-        
+
         // Create character image
         const characterImg = document.createElement('img');
         characterImg.className = 'score-character';
-        
+
         // Set character image based on player ID
         let imageSet = false;
         if (player.id === 0 && piggySprites.length > 0) {
@@ -1615,7 +1618,7 @@ function updateScoreDisplay() {
                 }
             }
         }
-        
+
         // Fallback: use colored square for other players or if image failed
         if (!imageSet) {
             characterImg.style.backgroundColor = player.color;
@@ -1623,43 +1626,86 @@ function updateScoreDisplay() {
             characterImg.style.height = '40px';
             characterImg.style.border = '2px solid #000';
         }
-        
+
         // Create score number
         const scoreNumber = document.createElement('div');
         scoreNumber.className = 'score-number';
         scoreNumber.textContent = score;
-        
+
         // Append to score item
         scoreItem.appendChild(characterImg);
         scoreItem.appendChild(scoreNumber);
-        
+
         // Append to container
         scoreContainer.appendChild(scoreItem);
     });
+}
+
+// Update menu character icons with actual graphics
+function updateMenuCharacterIcons() {
+    for (let i = 1; i <= 4; i++) {
+        const iconContainer = document.getElementById(`icon-p${i}`);
+        if (!iconContainer) continue;
+
+        let spriteData = null;
+        let color = '#fff';
+
+        if (i === 1 && piggySprites.length > 0) {
+            spriteData = piggySprites[0];
+        } else if (i === 2 && goldenPiggySprites.length > 0) {
+            spriteData = goldenPiggySprites[0];
+        } else {
+            // Use player colors for P3 and P4 for now as they don't have unique sprites yet
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00'];
+            color = colors[i - 1];
+        }
+
+        if (spriteData && spriteData.image && spriteData.image.complete) {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = spriteData.width;
+                canvas.height = spriteData.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(spriteData.image, 0, 0);
+
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL();
+                iconContainer.innerHTML = '';
+                iconContainer.appendChild(img);
+            } catch (e) {
+                console.warn(`Failed to set icon for P${i}:`, e);
+            }
+        } else {
+            // Fallback to colored text or simple placeholder
+            iconContainer.style.color = color;
+            iconContainer.style.fontWeight = 'bold';
+            iconContainer.textContent = `P${i}`;
+        }
+    }
 }
 
 // UI event handlers
 function setupUIHandlers() {
     const startBtn = document.getElementById('start-btn');
     const menuBtn = document.getElementById('menu-btn');
-    
+
     if (!startBtn || !menuBtn) {
         console.error('UI elements not found');
         return;
     }
-    
+
     startBtn.addEventListener('click', () => {
-        gameState.playerCount = parseInt(document.getElementById('player-count').value);
+        // Player count is already set by buttons
         // Reset scores when starting new game
         gameState.scores = {};
         gameState.roundProcessed = false;
         loadLevel(gameState.currentLevel);
         gameState.gameRunning = true;
         gameState.startTime = Date.now();
-        
+
         document.getElementById('menu-screen').classList.remove('active');
         document.getElementById('game-screen').classList.add('active');
-        
+
         updateScoreDisplay();
         gameLoop();
     });
@@ -1684,36 +1730,36 @@ function showTilesetViewer() {
         alert('Tileset er ikke lastet ennå. Vent litt og prøv igjen.');
         return;
     }
-    
+
     const modal = document.getElementById('tileset-viewer-modal');
     const content = document.getElementById('tileset-viewer-content');
-    
+
     if (!modal || !content) return;
-    
+
     // Calculate tiles per row and total rows
     const tilesPerRow = Math.floor(worldTileset.width / TILE_SIZE);
     const totalRows = Math.floor(worldTileset.height / TILE_SIZE);
     const totalTiles = tilesPerRow * totalRows;
-    
+
     // Create grid container
     const grid = document.createElement('div');
     grid.className = 'tileset-grid';
-    
+
     // Create a canvas to extract individual tiles
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = TILE_SIZE;
     tempCanvas.height = TILE_SIZE;
     const tempCtx = tempCanvas.getContext('2d', { alpha: true });
     tempCtx.imageSmoothingEnabled = false;
-    
+
     // Create tile items
     for (let tileIndex = 0; tileIndex < totalTiles; tileIndex++) {
         const row = Math.floor(tileIndex / tilesPerRow);
         const col = tileIndex % tilesPerRow;
-        
+
         const tileX = col * TILE_SIZE;
         const tileY = row * TILE_SIZE;
-        
+
         // Extract tile from tileset
         tempCtx.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
         tempCtx.drawImage(
@@ -1721,36 +1767,36 @@ function showTilesetViewer() {
             tileX, tileY, TILE_SIZE, TILE_SIZE,
             0, 0, TILE_SIZE, TILE_SIZE
         );
-        
+
         // Create tile item
         const tileItem = document.createElement('div');
         tileItem.className = 'tile-item';
-        
+
         // Create preview image
         const preview = document.createElement('img');
         preview.className = 'tile-preview';
         preview.src = tempCanvas.toDataURL();
-        
+
         // Create tile number
         const tileNumber = document.createElement('div');
         tileNumber.className = 'tile-number';
         tileNumber.textContent = `Tile ${tileIndex}`;
-        
+
         // Create coordinates
         const coords = document.createElement('div');
         coords.className = 'tile-coords';
         coords.textContent = `X: ${tileX}, Y: ${tileY}`;
-        
+
         tileItem.appendChild(preview);
         tileItem.appendChild(tileNumber);
         tileItem.appendChild(coords);
-        
+
         grid.appendChild(tileItem);
     }
-    
+
     content.innerHTML = '';
     content.appendChild(grid);
-    
+
     modal.classList.add('active');
 }
 
@@ -1766,15 +1812,15 @@ function setupTilesetViewer() {
     const viewerBtn = document.getElementById('tileset-viewer-btn');
     const closeBtn = document.getElementById('close-tileset-viewer');
     const modal = document.getElementById('tileset-viewer-modal');
-    
+
     if (viewerBtn) {
         viewerBtn.addEventListener('click', showTilesetViewer);
     }
-    
+
     if (closeBtn) {
         closeBtn.addEventListener('click', closeTilesetViewer);
     }
-    
+
     if (modal) {
         // Close modal when clicking outside
         modal.addEventListener('click', (e) => {
@@ -1782,7 +1828,7 @@ function setupTilesetViewer() {
                 closeTilesetViewer();
             }
         });
-        
+
         // Close modal with Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modal.classList.contains('active')) {
@@ -1807,11 +1853,40 @@ document.querySelectorAll('.level-btn').forEach(btn => {
     });
 });
 
-// Select first level by default - wait for DOM
+function updateControlsVisibility(count) {
+    for (let i = 1; i <= 4; i++) {
+        const controlItem = document.getElementById(`controls-p${i}`);
+        if (controlItem) {
+            if (i <= count) {
+                controlItem.classList.remove('hidden');
+            } else {
+                controlItem.classList.add('hidden');
+            }
+        }
+    }
+}
+
+document.querySelectorAll('.player-count-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        gameState.playerCount = parseInt(btn.dataset.count);
+        updateControlsVisibility(gameState.playerCount);
+    });
+});
+
+// Select first level and default player count by default - wait for DOM
 function initUI() {
     const firstLevelBtn = document.querySelector('.level-btn');
     if (firstLevelBtn) {
         firstLevelBtn.classList.add('selected');
+    }
+
+    const defaultPlayerBtn = document.querySelector('.player-count-btn[data-count="2"]');
+    if (defaultPlayerBtn) {
+        defaultPlayerBtn.classList.add('selected');
+        gameState.playerCount = 2;
+        updateControlsVisibility(2);
     }
 }
 
@@ -1829,29 +1904,29 @@ window.addEventListener('resize', () => {
 });
 
 // Test function to verify tagging works - can be called from console
-window.testTagging = function() {
+window.testTagging = function () {
     if (gameState.players.length < 2) {
         console.log('Need at least 2 players to test tagging');
         return;
     }
-    
+
     const player1 = gameState.players[0];
     const player2 = gameState.players[1];
-    
+
     console.log('Before tagging:');
     console.log('Player 1 isIt:', player1.isIt, 'Position:', player1.x, player1.y);
     console.log('Player 2 isIt:', player2.isIt, 'Position:', player2.x, player2.y);
-    
+
     // Move players to overlap (direct collision)
     player1.x = player2.x;
     player1.y = player2.y;
-    
+
     console.log('Players moved together. Checking collision...');
     console.log('Collision check:', player1.collidesWith(player2));
-    
+
     // Force collision check in the game's checkCollisions function
     checkCollisions();
-    
+
     console.log('After tagging:');
     console.log('Player 1 isIt:', player1.isIt);
     console.log('Player 2 isIt:', player2.isIt);
