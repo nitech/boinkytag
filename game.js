@@ -14,6 +14,7 @@ let gameState = {
     roundProcessed: false, // Track if current round end has been processed
     bouncePads: [],
     teleports: [],
+    boostTiles: [],
     currentLevelData: null,
     camera: {
         x: 0,
@@ -203,10 +204,60 @@ class Player {
         this.jumpsUsed = 0; // Number of jumps used (for double jump)
         this.maxJumps = 2; // Maximum number of jumps allowed
         this.jumpPressed = false; // Track if jump key was just pressed (not held)
+        this.sparkleTrail = []; // Trail of sparkles when moving
+        this.lastTrailPosition = { x: x, y: y }; // Last position where sparkle was added
+        this.trailUpdateInterval = 50; // Add sparkle every 50ms when moving
+        this.lastTrailUpdate = Date.now(); // Last time trail was updated
+        this.boostTime = 0; // Timestamp when boost expires (0 = no boost)
+        this.boostParticles = []; // Array of boost particles
+        this.baseSpeed = this.speed; // Store base speed
+        this.baseJumpPower = this.jumpPower; // Store base jump power
     }
 
     update(platforms) {
         if (!canvas) return;
+        
+        // Check if boost is active
+        const isBoosted = this.boostTime > Date.now();
+        
+        // Update speed and jump power based on boost
+        if (isBoosted) {
+            this.speed = this.baseSpeed * 1.5; // 150% speed
+            this.jumpPower = this.baseJumpPower * 1.5; // 150% jump
+        } else {
+            this.speed = this.baseSpeed;
+            this.jumpPower = this.baseJumpPower;
+        }
+        
+        // Emit boost particles while boosted
+        if (isBoosted) {
+            const currentTime = Date.now();
+            if (currentTime - this.lastTrailUpdate >= 50) { // Emit particle every 50ms
+                // Emit 2-4 random colored particles
+                const particleCount = 2 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < particleCount; i++) {
+                    this.boostParticles.push({
+                        x: this.x + this.width / 2 + (Math.random() - 0.5) * this.width,
+                        y: this.y + this.height / 2 + (Math.random() - 0.5) * this.height,
+                        vx: (Math.random() - 0.5) * 2, // Random horizontal velocity
+                        vy: -Math.random() * 1 - 0.5, // Upward velocity
+                        color: `hsl(${Math.random() * 360}, 100%, ${50 + Math.random() * 50}%)`, // Random bright color
+                        life: 1.0, // Full life (1 second)
+                        size: 3 + Math.random() * 3 // Random size 3-6
+                    });
+                }
+                this.lastTrailUpdate = currentTime;
+            }
+        }
+        
+        // Update boost particles
+        this.boostParticles = this.boostParticles.filter(particle => {
+            particle.life -= 0.016; // Decay ~60fps, ~1 second lifetime
+            particle.vy += 0.3; // Gravity
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            return particle.life > 0;
+        });
         
         // Apply gravity
         if (!this.onGround) {
@@ -262,6 +313,37 @@ class Player {
         
         // Update animation state
         this.isMoving = Math.abs(this.velocityX) > 0.1 || Math.abs(this.velocityY) > 0.1;
+        
+        // Update sparkle trail for player with tag
+        if (this.isIt && this.isMoving) {
+            const currentTime = Date.now();
+            const distance = Math.sqrt(
+                Math.pow(this.x - this.lastTrailPosition.x, 2) + 
+                Math.pow(this.y - this.lastTrailPosition.y, 2)
+            );
+            
+            // Add sparkle to trail if enough time has passed or enough distance moved
+            if (currentTime - this.lastTrailUpdate >= this.trailUpdateInterval || distance > 10) {
+                this.sparkleTrail.push({
+                    x: this.x + this.width / 2,
+                    y: this.y + this.height / 2,
+                    life: 1.0, // Full life when created
+                    size: 4 + Math.random() * 3, // Random size between 4-7
+                    angle: Math.random() * Math.PI * 2, // Random angle for flame shape
+                    speed: 0.3 + Math.random() * 0.4 // Random fall speed
+                });
+                this.lastTrailPosition = { x: this.x, y: this.y };
+                this.lastTrailUpdate = currentTime;
+            }
+        }
+        
+        // Update and remove old sparkles from trail
+        this.sparkleTrail = this.sparkleTrail.filter(sparkle => {
+            sparkle.life -= 0.008; // Decay slower (longer lasting)
+            sparkle.y += sparkle.speed; // Fall down
+            sparkle.x += Math.sin(sparkle.angle) * 0.5; // Slight horizontal drift
+            return sparkle.life > 0;
+        });
         
         // Update animation frame if moving (for players with character sprites)
         const currentTime = Date.now();
@@ -496,18 +578,128 @@ class Player {
             ctx.fillText((this.id + 1).toString(), this.x + this.width / 2, this.y + this.height / 2);
         }
 
-        // Draw "it" indicator (white arrow)
+        // Draw "it" indicator (two rotating bright stars)
         if (this.isIt) {
-            ctx.fillStyle = '#fff';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(this.x + this.width / 2, this.y - 25);
-            ctx.lineTo(this.x + this.width / 2 - 12, this.y - 5);
-            ctx.lineTo(this.x + this.width / 2 + 12, this.y - 5);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
+            ctx.save();
+            ctx.imageSmoothingEnabled = false;
+            
+            const time = Date.now();
+            const centerX = this.x + this.width / 2;
+            const centerY = this.y - 28; // slightly above head
+            
+            // Bright cycling colors
+            const hue1 = (time * 0.04) % 360;
+            const hue2 = (hue1 + 120) % 360;
+            const color1 = `hsl(${hue1}, 90%, 70%)`;
+            const color2 = `hsl(${hue2}, 95%, 65%)`;
+            
+            // Star params (two stars with different speeds and sizes)
+            const stars = [
+                { radius: 10, points: 5, innerScale: 0.45, orbit: 6, rotationSpeed: 0.003, color: color1 },
+                { radius: 13, points: 5, innerScale: 0.5, orbit: 10, rotationSpeed: -0.0045, color: color2 }
+            ];
+            
+            for (let star of stars) {
+                ctx.save();
+                
+                // Orbit rotation
+                const orbitAngle = time * star.rotationSpeed;
+                const orbitX = centerX + Math.cos(orbitAngle) * star.orbit;
+                const orbitY = centerY + Math.sin(orbitAngle) * star.orbit;
+                
+                // Star self rotation
+                ctx.translate(orbitX, orbitY);
+                ctx.rotate(orbitAngle * 2);
+                
+                // Draw pixelated star using a simple pattern (no outline)
+                // Add subtle hue variance per pixel for sparkle
+                const hueMatch = /hsl\(([^,]+),/i.exec(star.color);
+                const baseHue = hueMatch ? Number(hueMatch[1]) : 50;
+                const px = Math.max(2, Math.floor(star.radius / 3)); // Pixel size
+                const pattern = [
+                    [0, -2], [0, -1],
+                    [-1, -1], [1, -1],
+                    [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0],
+                    [-1, 1], [1, 1],
+                    [0, 1], [0, 2]
+                ];
+                
+                pattern.forEach(([ox, oy], idx) => {
+                    const hueJitter = Math.sin(time * 0.01 + idx) * 6; // +/-6 deg
+                    const satJitter = Math.sin(time * 0.02 + idx * 0.5) * 5; // +/-5%
+                    const lightJitter = Math.sin(time * 0.015 + idx * 0.3) * 5; // +/-5%
+                    const fill = `hsl(${Number(baseHue) + hueJitter}, 90% ${satJitter >= 0 ? '+' : '-'} ${Math.abs(satJitter)}%, 70% ${lightJitter >= 0 ? '+' : '-'} ${Math.abs(lightJitter)}%)`;
+                    // Clamp saturation/lightness indirectly via hsl string? Instead compute values:
+                    const satVal = Math.min(100, Math.max(0, 90 + satJitter));
+                    const lightVal = Math.min(100, Math.max(0, 70 + lightJitter));
+                    ctx.fillStyle = `hsl(${Number(baseHue) + hueJitter}, ${satVal}%, ${lightVal}%)`;
+                    ctx.fillRect(ox * px, oy * px, px, px);
+                });
+                
+                ctx.restore();
+            }
+            
+            ctx.restore();
+        }
+        
+        // Draw sparkle trail when player is moving
+        if (this.isIt && this.sparkleTrail.length > 0) {
+            ctx.save();
+            ctx.imageSmoothingEnabled = false;
+            
+            const hue = 50; // Yellow hue
+            const lightness = 90;
+            const saturation = 50;
+            
+            for (let sparkle of this.sparkleTrail) {
+                const alpha = sparkle.life;
+                const size = sparkle.size * sparkle.life;
+                
+                if (size > 0.5 && alpha > 0) {
+                    ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}, ${alpha})`;
+                    
+                    // Draw flame sparkle pattern
+                    const flamePattern = [
+                        [0, 0], [1, 0], [-1, 0], [0, -1], [1, -1],
+                        [0, 1], [1, 1], [-1, 1], [2, 0], [-2, 0],
+                        [0, -2], [1, -2]
+                    ];
+                    
+                    for (let pixel of flamePattern) {
+                        const pixelX = Math.floor(sparkle.x + pixel[0] * (size / 4));
+                        const pixelY = Math.floor(sparkle.y + pixel[1] * (size / 4));
+                        const pixelSize = Math.max(1, Math.floor(size / 4));
+                        ctx.fillRect(pixelX, pixelY, pixelSize, pixelSize);
+                    }
+                }
+            }
+            
+            ctx.restore();
+        }
+        
+        // Draw boost particles
+        if (this.boostParticles.length > 0) {
+            ctx.save();
+            ctx.imageSmoothingEnabled = false;
+            
+            for (let particle of this.boostParticles) {
+                const alpha = particle.life;
+                const size = Math.max(1, Math.floor(particle.size * particle.life));
+                
+                if (size > 0 && alpha > 0) {
+                    ctx.fillStyle = particle.color;
+                    ctx.globalAlpha = alpha;
+                    // Draw pixelated dot
+                    ctx.fillRect(
+                        Math.floor(particle.x - size / 2),
+                        Math.floor(particle.y - size / 2),
+                        size,
+                        size
+                    );
+                }
+            }
+            
+            ctx.restore();
         }
         
         // Reset alpha
@@ -608,6 +800,58 @@ class BouncePad {
     }
 }
 
+// Boost tile class (Tile 87)
+class BoostTile {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = TILE_SIZE;
+        this.height = TILE_SIZE;
+        this.tileIndex = 87;
+        this.pulse = 0;
+    }
+
+    update() {
+        this.pulse += 0.1;
+    }
+
+    draw() {
+        if (!ctx || !worldTileset) return;
+        
+        // Disable image smoothing for pixel-perfect rendering
+        ctx.imageSmoothingEnabled = false;
+        
+        // Calculate tile position in tileset based on tile index (87)
+        const tilesPerRow = Math.floor(worldTileset.width / TILE_SIZE);
+        const tileRow = Math.floor(this.tileIndex / tilesPerRow);
+        const tileCol = this.tileIndex % tilesPerRow;
+        const spriteX = tileCol * TILE_SIZE;
+        const spriteY = tileRow * TILE_SIZE;
+        
+        // Add pulsing glow effect
+        const glowAlpha = 0.3 + Math.sin(this.pulse) * 0.2;
+        ctx.save();
+        ctx.globalAlpha = glowAlpha;
+        ctx.fillStyle = '#ffff00';
+        ctx.fillRect(this.x - 2, this.y - 2, this.width + 4, this.height + 4);
+        ctx.restore();
+        
+        // Draw the tile
+        ctx.drawImage(
+            worldTileset,
+            spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile 87 from tileset
+            this.x, this.y, TILE_SIZE, TILE_SIZE // Destination: position on canvas
+        );
+    }
+
+    checkCollision(player) {
+        return player.x < this.x + this.width &&
+               player.x + player.width > this.x &&
+               player.y < this.y + this.height &&
+               player.y + player.height > this.y;
+    }
+}
+
 // Teleport class
 class Teleport {
     constructor(x, y, targetX, targetY) {
@@ -681,8 +925,20 @@ function getLevel1() {
         }
     }
     
+    // Generate 5 random boost tiles on platforms
+    const boostTiles = [];
+    const validPlatforms = platforms.filter(p => p.y < WORLD_HEIGHT - 50); // Exclude ground platform
+    for (let i = 0; i < 5 && validPlatforms.length > 0; i++) {
+        const randomPlatform = validPlatforms[Math.floor(Math.random() * validPlatforms.length)];
+        // Place boost tile on top of platform, centered
+        const boostX = randomPlatform.x + (randomPlatform.width - TILE_SIZE) / 2;
+        const boostY = randomPlatform.y - TILE_SIZE;
+        boostTiles.push(new BoostTile(boostX, boostY));
+    }
+    
     return {
         platforms: platforms,
+        boostTiles: boostTiles,
         bouncePads: [
             // Ground level bounce pads
             new BouncePad(250, WORLD_HEIGHT - 170, 48, 20),
@@ -756,8 +1012,20 @@ function getLevel2() {
         }
     }
     
+    // Generate 5 random boost tiles on platforms
+    const boostTiles = [];
+    const validPlatforms = platforms.filter(p => p.y < WORLD_HEIGHT - 50); // Exclude ground platform
+    for (let i = 0; i < 5 && validPlatforms.length > 0; i++) {
+        const randomPlatform = validPlatforms[Math.floor(Math.random() * validPlatforms.length)];
+        // Place boost tile on top of platform, centered
+        const boostX = randomPlatform.x + (randomPlatform.width - TILE_SIZE) / 2;
+        const boostY = randomPlatform.y - TILE_SIZE;
+        boostTiles.push(new BoostTile(boostX, boostY));
+    }
+    
     return {
         platforms: platforms,
+        boostTiles: boostTiles,
         bouncePads: [
             // Ground level bounce pads
             new BouncePad(175, WORLD_HEIGHT - 170, 50, 20),
@@ -834,8 +1102,20 @@ function getLevel3() {
         }
     }
     
+    // Generate 5 random boost tiles on platforms
+    const boostTiles = [];
+    const validPlatforms = platforms.filter(p => p.y < WORLD_HEIGHT - 50); // Exclude ground platform
+    for (let i = 0; i < 5 && validPlatforms.length > 0; i++) {
+        const randomPlatform = validPlatforms[Math.floor(Math.random() * validPlatforms.length)];
+        // Place boost tile on top of platform, centered
+        const boostX = randomPlatform.x + (randomPlatform.width - TILE_SIZE) / 2;
+        const boostY = randomPlatform.y - TILE_SIZE;
+        boostTiles.push(new BoostTile(boostX, boostY));
+    }
+    
     return {
         platforms: platforms,
+        boostTiles: boostTiles,
         bouncePads: [
             // Ground level bounce pads
             new BouncePad(150, WORLD_HEIGHT - 200, 50, 20),
@@ -982,6 +1262,7 @@ function loadLevel(levelIndex) {
     
     gameState.bouncePads = level.bouncePads;
     gameState.teleports = level.teleports;
+    gameState.boostTiles = level.boostTiles;
     gameState.currentLevelData = level;
     
     // Initialize players first (this will set camera position)
@@ -1069,20 +1350,15 @@ function updateCamera() {
     const distanceX = maxX - minX;
     const distanceY = maxY - minY;
     
-    // If players are at same position, use default zoom
-    if (distanceX < 10 && distanceY < 10) {
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-        cam.x += (centerX - cam.x) * 0.1;
-        cam.y += (centerY - cam.y) * 0.1;
-        return;
-    }
-    
     // Calculate desired zoom based on distance
     // Add padding (200 pixels on each side)
     const padding = 200;
-    const desiredZoomX = (canvas.width - padding) / (distanceX + padding);
-    const desiredZoomY = (canvas.height - padding) / (distanceY + padding);
+    // Avoid extreme zoom when players overlap by enforcing a minimum distance
+    const minDistance = 80;
+    const adjustedDistanceX = Math.max(distanceX, minDistance);
+    const adjustedDistanceY = Math.max(distanceY, minDistance);
+    const desiredZoomX = (canvas.width - padding) / (adjustedDistanceX + padding);
+    const desiredZoomY = (canvas.height - padding) / (adjustedDistanceY + padding);
     let desiredZoom = Math.min(desiredZoomX, desiredZoomY);
     
     // Clamp zoom
@@ -1131,6 +1407,34 @@ function checkCollisions() {
         });
     });
     
+    // Check boost tiles
+    gameState.players.forEach(player => {
+        for (let i = gameState.boostTiles.length - 1; i >= 0; i--) {
+            const boostTile = gameState.boostTiles[i];
+            if (boostTile.checkCollision(player)) {
+                // Activate boost for 8 seconds
+                player.boostTime = Date.now() + 8000;
+                
+                // Remove this boost tile
+                gameState.boostTiles.splice(i, 1);
+                
+                // Create a new boost tile on a random platform
+                const level = gameState.currentLevelData;
+                if (level && level.platforms) {
+                    const validPlatforms = level.platforms.filter(p => p.y < WORLD_HEIGHT - 50);
+                    if (validPlatforms.length > 0) {
+                        const randomPlatform = validPlatforms[Math.floor(Math.random() * validPlatforms.length)];
+                        const boostX = randomPlatform.x + (randomPlatform.width - TILE_SIZE) / 2;
+                        const boostY = randomPlatform.y - TILE_SIZE;
+                        gameState.boostTiles.push(new BoostTile(boostX, boostY));
+                    }
+                }
+                
+                break; // Only one boost tile per collision
+            }
+        }
+    });
+    
     // Check tagging - must be done after all updates
     // Only one player should have tag at a time, so find the player with tag first
     const playerWithTag = gameState.players.find(p => p.isIt);
@@ -1176,6 +1480,9 @@ function gameLoop() {
     // Update teleports
     gameState.teleports.forEach(tp => tp.update());
     
+    // Update boost tiles
+    gameState.boostTiles.forEach(bt => bt.update());
+    
     // Update players
     const level = gameState.currentLevelData;
     gameState.players.forEach(player => {
@@ -1205,6 +1512,7 @@ function gameLoop() {
     level.platforms.forEach(platform => platform.draw());
     gameState.bouncePads.forEach(pad => pad.draw());
     gameState.teleports.forEach(tp => tp.draw());
+    gameState.boostTiles.forEach(bt => bt.draw());
     
     // Draw players
     gameState.players.forEach(player => player.draw());
