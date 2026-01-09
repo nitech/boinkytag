@@ -1,4 +1,4 @@
-# TAG - Multiplayer Game
+# Boinkytag - Multiplayer Game
 
 Et lokalt multiplayer spill av catch, inspirert av spillet på Poki.
 
@@ -8,7 +8,7 @@ Et lokalt multiplayer spill av catch, inspirert av spillet på Poki.
 - **3 verdener**: Tre unike baner med forskjellige layouts og utfordringer
 - **Bounce pads**: Grønne hoppeputer som sender deg høyt opp i luften
 - **Teleporter**: Lilla teleporter som kan brukes én gang for å teleportere deg til en annen del av banen
-- **Tagging**: Gå inn i en annen spiller for å tagge dem og bli "it"
+- **Boinkytagging**: Gå inn i en annen spiller for å boinke dem og bli "it"
 
 ## Kontroller
 
@@ -57,7 +57,7 @@ Du kan også dobbeltklikke på `index.html` for å åpne det direkte i nettleser
 3. Velg en verden (1, 2 eller 3)
 4. Klikk "Start Spill"
 5. Den hvite pilen viser hvem som er "it"
-6. Unngå å bli tagget, eller tagg andre for å bli "it" selv!
+6. Unngå å bli boinket, eller boink andre for å bli "it" selv!
 
 ## Teknisk
 

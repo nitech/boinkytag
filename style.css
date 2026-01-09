@@ -39,7 +39,7 @@ body {
 }
 
 .screen.active {
-    display: flex;
+    display: flex !important;
     flex-direction: column;
 }
 
@@ -578,4 +578,227 @@ kbd {
         margin-top: 10px;
         padding: 10px;
     }
+}
+
+/* Map Editor Styles */
+.map-editor-btn {
+    background: transparent;
+    color: #444;
+    border: none;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.5em;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 10px;
+    transition: color 0.2s;
+}
+
+.map-editor-btn:hover {
+    color: #888;
+}
+
+#editor-screen {
+    background: #111 !important;
+    height: 100vh;
+    width: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    flex-direction: column;
+}
+
+#editor-screen.active {
+    display: flex;
+}
+
+.editor-toolbar {
+    background: #222;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-bottom: 2px solid #444;
+}
+
+.tool-group {
+    display: flex;
+    gap: 5px;
+    border-right: 2px solid #333;
+    padding-right: 20px;
+}
+
+.editor-btn,
+.tool-btn {
+    padding: 8px 12px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.6em;
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    cursor: pointer;
+}
+
+.tool-btn.active {
+    background: var(--accent-color);
+    color: #000;
+}
+
+.status-info {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    font-size: 0.5em;
+    color: #888;
+}
+
+.map-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.5em;
+    color: #888;
+}
+
+.map-size-controls input {
+    width: 70px;
+    background: #111;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 3px;
+    font-family: monospace;
+}
+
+.editor-main {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+}
+
+#editorCanvas {
+    flex: 1;
+    background: #000;
+    cursor: crosshair;
+}
+
+.editor-props {
+    width: 250px;
+    background: #222;
+    border-left: 2px solid #444;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.editor-props h3 {
+    font-size: 0.7em;
+    color: var(--accent-color);
+    text-transform: uppercase;
+}
+
+.prop-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.prop-field label {
+    font-size: 0.5em;
+    color: #888;
+}
+
+.prop-field input {
+    background: #111;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 5px;
+    font-family: monospace;
+}
+
+.delete-btn {
+    margin-top: auto;
+    padding: 10px;
+    background: #822;
+    color: #fff;
+    border: 1px solid #a44;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.5em;
+    cursor: pointer;
+}
+
+.editor-help {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    font-size: 0.5em;
+    color: #888;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#miniMapCanvas {
+    width: 100%;
+    height: 120px;
+    background: #000;
+    border: 2px solid #444;
+    margin-bottom: 10px;
+    display: block;
+    pointer-events: none;
+}
+
+.tile-selector {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.tile-option {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #444;
+    cursor: pointer;
+    background-size: cover;
+    image-rendering: pixelated;
+}
+
+.tile-option.selected {
+    border-color: var(--accent-color);
+}
+
+.level-list {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.level-item {
+    background: #222;
+    border: 2px solid #444;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.level-item:hover {
+    border-color: var(--accent-color);
+    background: #111;
+}
+
+.level-item h4 {
+    font-size: 0.8em;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.level-item p {
+    font-size: 0.5em;
+    color: #666;
 }

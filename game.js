@@ -1,6 +1,5 @@
-// Game world constants - 4x larger
-const WORLD_WIDTH = 8000;
-const WORLD_HEIGHT = 4800;
+var WORLD_WIDTH = 8000;
+var WORLD_HEIGHT = 4800;
 
 // Game state
 let gameState = {
@@ -37,8 +36,8 @@ let goldenPiggyCharacter = null;
 let goldenPiggySprites = [];
 
 // World tileset sprite sheet
-let worldTileset = null;
-const TILE_SIZE = 16; // Each sprite is 16x16 pixels
+var worldTileset = null;
+var TILE_SIZE = 16; // Each sprite is 16x16 pixels
 
 // Set canvas size (viewport size, not world size)
 function resizeCanvas() {
@@ -1193,10 +1192,10 @@ function getLevel3() {
 const levelGenerators = [getLevel1, getLevel2, getLevel3];
 
 // Initialize players
-function initPlayers() {
+function initPlayers(levelData) {
     gameState.players = [];
     const colors = ['#ff4444', '#4444ff', '#44ff44', '#ff44ff'];
-    const level = levelGenerators[gameState.currentLevel]();
+    const level = levelData || levelGenerators[gameState.currentLevel]();
 
     // Initialize scores if not already set
     for (let i = 0; i < gameState.playerCount; i++) {
@@ -1255,13 +1254,34 @@ function initPlayers() {
 }
 
 // Load level
-function loadLevel(levelIndex) {
+function loadLevel(levelSource) {
     if (!canvas) {
         console.error('Canvas not initialized!');
         return;
     }
-    gameState.currentLevel = levelIndex;
-    const level = levelGenerators[levelIndex]();
+
+    let level;
+    if (typeof levelSource === 'number') {
+        gameState.currentLevel = levelSource;
+        level = levelGenerators[levelSource]();
+        // Reset to default for built-in levels if they don't specify
+        WORLD_WIDTH = 8000;
+        WORLD_HEIGHT = 4800;
+    } else {
+        // Custom level from object
+        gameState.currentLevel = 'custom';
+        level = levelSource;
+
+        // Update world size from custom level
+        WORLD_WIDTH = level.worldWidth || 8000;
+        WORLD_HEIGHT = level.worldHeight || 4800;
+
+        // Convert to class instances if they aren't already
+        level.platforms = level.platforms.map(p => new Platform(p.x, p.y, p.width, p.height, '#8B4513', p.tileIndex));
+        level.bouncePads = level.bouncePads.map(p => new BouncePad(p.x, p.y, p.width, p.height));
+        level.teleports = level.teleports.map(p => new Teleport(p.x, p.y, p.targetX, p.targetY));
+        level.boostTiles = level.boostTiles.map(p => new BoostTile(p.x, p.y));
+    }
 
     gameState.bouncePads = level.bouncePads;
     gameState.teleports = level.teleports;
@@ -1269,7 +1289,7 @@ function loadLevel(levelIndex) {
     gameState.currentLevelData = level;
 
     // Initialize players first (this will set camera position)
-    initPlayers();
+    initPlayers(level);
 
     // Update score display after players are initialized
     updateScoreDisplay();
@@ -1460,7 +1480,7 @@ function checkCollisions() {
                     otherPlayer.isIt = true;
                     // Set 2 second immunity for the newly tagged player
                     otherPlayer.tagImmunityTime = Date.now() + 2000;
-                    console.log(`TAG! Player ${otherPlayer.id + 1} (${otherPlayer.color}) is now "it"!`);
+                    console.log(`BOINK! Player ${otherPlayer.id + 1} (${otherPlayer.color}) is now "it"!`);
                     // Break after first tag to avoid multiple tags in same frame
                     break;
                 }
@@ -1699,7 +1719,13 @@ function setupUIHandlers() {
         // Reset scores when starting new game
         gameState.scores = {};
         gameState.roundProcessed = false;
-        loadLevel(gameState.currentLevel);
+
+        if (gameState.selectedCustomLevel) {
+            loadLevel(gameState.selectedCustomLevel);
+        } else {
+            loadLevel(gameState.currentLevel);
+        }
+
         gameState.gameRunning = true;
         gameState.startTime = Date.now();
 
@@ -1849,7 +1875,10 @@ document.querySelectorAll('.level-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-        gameState.currentLevel = parseInt(btn.dataset.level);
+        if (btn.dataset.level !== undefined) {
+            gameState.currentLevel = parseInt(btn.dataset.level);
+            gameState.selectedCustomLevel = null;
+        }
     });
 });
 

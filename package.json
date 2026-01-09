@@ -1,5 +1,5 @@
 {
-  "name": "tag-game",
+  "name": "boinkytag",
   "version": "1.0.0",
   "description": "Et lokalt multiplayer spill av catch",
   "scripts": {
@@ -10,4 +10,3 @@
     "live-server": "^1.2.2"
   }
 }
-
