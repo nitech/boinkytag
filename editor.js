@@ -107,13 +107,18 @@ class MapEditor {
             document.getElementById('level-loader-modal').classList.remove('active');
         });
 
-        // Mini-map interaction
         if (this.miniMapCanvas) {
             this.miniMapCanvas.style.pointerEvents = 'auto';
             this.miniMapCanvas.addEventListener('mousedown', (e) => this.handleMiniMapDown(e));
             window.addEventListener('mousemove', (e) => this.handleMiniMapMove(e));
             window.addEventListener('mouseup', () => this.miniMapPanning = false);
         }
+
+        // Save modal listeners
+        document.getElementById('close-save-modal').addEventListener('click', () => {
+            document.getElementById('save-level-modal').classList.remove('active');
+        });
+        document.getElementById('confirm-save-btn').addEventListener('click', () => this.confirmSaveLevel());
     }
 
     enterEditor() {
@@ -473,8 +478,22 @@ class MapEditor {
     }
 
     saveLevel() {
-        const name = prompt('Navn på banen:', 'Min bane');
-        if (!name) return;
+        const modal = document.getElementById('save-level-modal');
+        const input = document.getElementById('level-name-input');
+        input.value = 'Min bane';
+        modal.classList.add('active');
+        input.focus();
+    }
+
+    confirmSaveLevel() {
+        const modal = document.getElementById('save-level-modal');
+        const input = document.getElementById('level-name-input');
+        const name = input.value.trim();
+
+        if (!name) {
+            alert('Du må gi banen et navn!');
+            return;
+        }
 
         const levels = JSON.parse(localStorage.getItem('boinkytag_levels') || '{}');
         levels[name] = {
@@ -485,6 +504,7 @@ class MapEditor {
             lastModified: Date.now()
         };
         localStorage.setItem('boinkytag_levels', JSON.stringify(levels));
+        modal.classList.remove('active');
         alert('Lagret!');
     }
 
@@ -509,10 +529,23 @@ class MapEditor {
                 <button class="delete-level-btn" style="background:#522; color:white; border:none; padding:5px; margin-top:5px; font-size:10px;">Slett</button>
             `;
 
-            item.querySelector('h4').onclick = (e) => {
+            item.onclick = (e) => {
+                // Don't trigger if clicking delete button
+                if (e.target.classList.contains('delete-level-btn')) return;
+
                 e.stopPropagation();
                 this.loadLevelData(data, isPlayMode);
                 modal.classList.remove('active');
+                if (isPlayMode) {
+                    if (window.startGame) {
+                        window.startGame();
+                    } else {
+                        console.error('startGame function not found!');
+                        // Fallback
+                        const startBtn = document.getElementById('start-btn');
+                        if (startBtn) startBtn.click();
+                    }
+                }
             };
 
             item.querySelector('.delete-level-btn').onclick = (e) => {
@@ -675,20 +708,46 @@ class MapEditor {
 
         this.elements.spawnPoints.forEach((p, i) => {
             const colors = ['#f44', '#44f', '#4f4', '#f4f'];
-            targetCtx.fillStyle = colors[i % colors.length];
             if (isMiniMap) {
+                targetCtx.fillStyle = colors[i % colors.length];
                 targetCtx.fillRect(p.x - 50, p.y - 50, 100, 100);
             } else {
-                targetCtx.beginPath();
-                targetCtx.arc(p.x, p.y, 20, 0, Math.PI * 2);
-                targetCtx.fill();
-                targetCtx.strokeStyle = p === this.selectedElement?.element ? '#fff' : '#000';
-                targetCtx.lineWidth = 2;
-                targetCtx.stroke();
+                // Try to draw actual character sprites if available
+                let spriteD = null;
+                // Note: piggySprites and goldenPiggySprites are global from game.js
+                if (i === 0 && typeof piggySprites !== 'undefined' && piggySprites.length > 0) spriteD = piggySprites[0];
+                else if (i === 1 && typeof goldenPiggySprites !== 'undefined' && goldenPiggySprites.length > 0) spriteD = goldenPiggySprites[0];
+
+                if (spriteD && spriteD.image && spriteD.image.complete) {
+                    targetCtx.save();
+                    // Center the sprite on the spawn point
+                    const drawX = p.x - 20;
+                    const drawY = p.y - 20;
+                    targetCtx.drawImage(spriteD.image, drawX, drawY, 40, 40);
+
+                    if (p === this.selectedElement?.element) {
+                        targetCtx.strokeStyle = '#fff';
+                        targetCtx.lineWidth = 2;
+                        targetCtx.strokeRect(drawX, drawY, 40, 40);
+                    }
+                    targetCtx.restore();
+                } else {
+                    targetCtx.beginPath();
+                    targetCtx.arc(p.x, p.y, 20, 0, Math.PI * 2);
+                    targetCtx.fillStyle = colors[i % colors.length];
+                    targetCtx.fill();
+                    targetCtx.strokeStyle = p === this.selectedElement?.element ? '#fff' : '#000';
+                    targetCtx.lineWidth = 2;
+                    targetCtx.stroke();
+                }
+
                 targetCtx.fillStyle = '#fff';
-                targetCtx.font = '15px Arial';
+                targetCtx.font = 'bold 15px Arial';
                 targetCtx.textAlign = 'center';
-                targetCtx.fillText(`P${i + 1}`, p.x, p.y + 7);
+                targetCtx.shadowColor = 'black';
+                targetCtx.shadowBlur = 4;
+                targetCtx.fillText(`P${i + 1}`, p.x, p.y - 25);
+                targetCtx.shadowBlur = 0;
             }
         });
     }

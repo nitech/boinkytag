@@ -1205,7 +1205,8 @@ function initPlayers(levelData) {
     }
 
     for (let i = 0; i < gameState.playerCount; i++) {
-        const spawn = level.spawnPoints[i];
+        // Fallback if no spawn points defined in custom level or too few
+        const spawn = (level.spawnPoints && level.spawnPoints[i]) || { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT - 100 };
         const player = new Player(spawn.x, spawn.y, colors[i], i);
         gameState.players.push(player);
     }
@@ -1270,17 +1271,22 @@ function loadLevel(levelSource) {
     } else {
         // Custom level from object
         gameState.currentLevel = 'custom';
-        level = levelSource;
 
         // Update world size from custom level
-        WORLD_WIDTH = level.worldWidth || 8000;
-        WORLD_HEIGHT = level.worldHeight || 4800;
+        WORLD_WIDTH = levelSource.worldWidth || 8000;
+        WORLD_HEIGHT = levelSource.worldHeight || 4800;
+
+        // Custom levels have elements nested under 'elements' property from the editor
+        const elements = levelSource.elements || levelSource;
 
         // Convert to class instances if they aren't already
-        level.platforms = level.platforms.map(p => new Platform(p.x, p.y, p.width, p.height, '#8B4513', p.tileIndex));
-        level.bouncePads = level.bouncePads.map(p => new BouncePad(p.x, p.y, p.width, p.height));
-        level.teleports = level.teleports.map(p => new Teleport(p.x, p.y, p.targetX, p.targetY));
-        level.boostTiles = level.boostTiles.map(p => new BoostTile(p.x, p.y));
+        level = {
+            platforms: (elements.platforms || []).map(p => new Platform(p.x, p.y, p.width, p.height, '#8B4513', p.tileIndex)),
+            bouncePads: (elements.bouncePads || []).map(p => new BouncePad(p.x, p.y, p.width, p.height)),
+            teleports: (elements.teleports || []).map(p => new Teleport(p.x, p.y, p.targetX, p.targetY)),
+            boostTiles: (elements.boostTiles || []).map(p => new BoostTile(p.x, p.y)),
+            spawnPoints: elements.spawnPoints || []
+        };
     }
 
     gameState.bouncePads = level.bouncePads;
@@ -1714,7 +1720,7 @@ function setupUIHandlers() {
         return;
     }
 
-    startBtn.addEventListener('click', () => {
+    window.startGame = () => {
         // Player count is already set by buttons
         // Reset scores when starting new game
         gameState.scores = {};
@@ -1732,9 +1738,14 @@ function setupUIHandlers() {
         document.getElementById('menu-screen').classList.remove('active');
         document.getElementById('game-screen').classList.add('active');
 
+        // Ensure canvas is sized correctly
+        resizeCanvas();
+
         updateScoreDisplay();
         gameLoop();
-    });
+    };
+
+    startBtn.addEventListener('click', window.startGame);
 
     menuBtn.addEventListener('click', () => {
         gameState.gameRunning = false;

@@ -60,7 +60,7 @@
 
             <div class="menu-footer">
                 <button id="start-btn" class="start-btn">Start Spill</button>
-                <button id="tileset-viewer-btn" class="tileset-viewer-btn">Innstillinger</button>
+                <button id="tileset-viewer-btn" class="tileset-viewer-btn">Tileset Info</button>
                 <button id="map-editor-btn" class="map-editor-btn">Map Editor</button>
             </div>
         </div>
@@ -145,6 +145,23 @@
             </div>
             <div id="level-list" class="level-list">
                 <!-- Level list added via JS -->
+            </div>
+        </div>
+    </div>
+
+    <div id="save-level-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px; height: auto;">
+            <div class="modal-header">
+                <h2>Lagre bane</h2>
+                <button id="close-save-modal" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: 30px; display: flex; flex-direction: column; gap: 20px;">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <label style="color: #888; font-size: 0.8em;">Navn på banen:</label>
+                    <input type="text" id="level-name-input"
+                        style="padding: 10px; background: #111; border: 2px solid #444; color: white; font-family: 'Press Start 2P', cursive;">
+                </div>
+                <button id="confirm-save-btn" class="start-btn" style="width: 100%; font-size: 0.8em;">Lagre</button>
             </div>
         </div>
     </div>
