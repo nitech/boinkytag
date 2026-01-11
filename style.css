@@ -807,12 +807,24 @@ kbd {
 .level-item {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 2px solid rgba(255, 255, 255, 0.1);
-    padding: 20px;
+    padding: 10px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
     backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.level-preview {
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: #000;
+    border: 1px solid #333;
+    image-rendering: pixelated;
+    object-fit: contain;
 }
 
 .level-item::before {
@@ -839,10 +851,48 @@ kbd {
 }
 
 .level-item h4 {
-    font-size: 0.8em;
+    font-size: 0.6em;
     color: var(--accent-color);
-    margin-bottom: 12px;
+    margin: 5px 0;
     text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.create-new-btn {
+    grid-column: 1 / -1;
+    padding: 20px;
+    background: rgba(102, 126, 234, 0.2);
+    border: 3px dashed var(--accent-color);
+    color: var(--accent-color);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.8em;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: all 0.2s;
+}
+
+.create-new-btn:hover {
+    background: rgba(102, 126, 234, 0.3);
+    color: #fff;
+    border-style: solid;
+}
+
+.level-item .delete-level-btn {
+    background: #522;
+    color: white;
+    border: none;
+    padding: 5px;
+    font-size: 8px;
+    font-family: 'Press Start 2P', cursive;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.level-item .delete-level-btn:hover {
+    opacity: 1;
+    background: #822;
 }
 
 .level-item p {

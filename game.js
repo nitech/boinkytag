@@ -1735,7 +1735,7 @@ function setupUIHandlers() {
         gameState.gameRunning = true;
         gameState.startTime = Date.now();
 
-        document.getElementById('menu-screen').classList.remove('active');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('game-screen').classList.add('active');
 
         // Ensure canvas is sized correctly

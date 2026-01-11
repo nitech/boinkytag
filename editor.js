@@ -13,6 +13,7 @@ class MapEditor {
         this.worldHeight = 4800;
         this.gridSize = 16;
         this.tileSize = 16;
+        this.loadedLevelName = null; // Track if we are editing an existing level
 
         this.camera = {
             x: 4000,
@@ -22,30 +23,19 @@ class MapEditor {
             maxZoom: 3.0
         };
 
-        this.elements = {
-            platforms: [],
-            bouncePads: [],
-            teleports: [],
-            boostTiles: [],
-            spawnPoints: [
-                { x: 4000, y: 4700 },
-                { x: 4100, y: 4700 },
-                { x: 3900, y: 4700 },
-                { x: 4050, y: 4700 }
-            ]
-        };
+        this.elements = this.getEmptyLevel();
 
         this.currentTool = 'platform';
         this.selectedElement = null;
         this.interaction = {
-            type: 'none', // 'none', 'creating', 'moving', 'resizing'
+            type: 'none',
             startX: 0,
             startY: 0,
             origX: 0,
             origY: 0,
             origW: 0,
             origH: 0,
-            resizeDir: '' // 'e', 'w', 's', 'n', 'se', etc.
+            resizeDir: ''
         };
 
         this.panState = null;
@@ -58,6 +48,21 @@ class MapEditor {
         this.setupEventListeners();
         this.resize();
         this.render();
+    }
+
+    getEmptyLevel() {
+        return {
+            platforms: [],
+            bouncePads: [],
+            teleports: [],
+            boostTiles: [],
+            spawnPoints: [
+                { x: 4000, y: 4700 },
+                { x: 4100, y: 4700 },
+                { x: 3900, y: 4700 },
+                { x: 4050, y: 4700 }
+            ]
+        };
     }
 
     setupEventListeners() {
@@ -82,10 +87,14 @@ class MapEditor {
 
         // Action buttons
         document.getElementById('editor-save-btn').addEventListener('click', () => this.saveLevel());
-        document.getElementById('editor-load-btn').addEventListener('click', () => this.showLevelLoader());
+        document.getElementById('editor-load-btn').addEventListener('click', () => this.showLevelLoader('load'));
         document.getElementById('editor-clear-btn').addEventListener('click', () => this.clearLevel());
         document.getElementById('editor-back-btn').addEventListener('click', () => this.exitEditor());
         document.getElementById('delete-element-btn').addEventListener('click', () => this.deleteSelected());
+
+        // Test button
+        const testBtn = document.getElementById('editor-test-btn');
+        if (testBtn) testBtn.addEventListener('click', () => this.testGame());
 
         // Zoom buttons
         document.getElementById('editor-zoom-in').addEventListener('click', () => this.zoom(1.2));
@@ -101,8 +110,8 @@ class MapEditor {
             this.worldHeight = parseInt(e.target.value) || 4800;
         });
 
-        document.getElementById('map-editor-btn').addEventListener('click', () => this.enterEditor());
-        document.getElementById('load-custom-level-btn').addEventListener('click', () => this.showLevelLoader(true));
+        document.getElementById('map-editor-btn').addEventListener('click', () => this.showLevelLoader('editorEntry'));
+        document.getElementById('load-custom-level-btn').addEventListener('click', () => this.showLevelLoader('play'));
         document.getElementById('close-level-loader').addEventListener('click', () => {
             document.getElementById('level-loader-modal').classList.remove('active');
         });
@@ -121,12 +130,20 @@ class MapEditor {
         document.getElementById('confirm-save-btn').addEventListener('click', () => this.confirmSaveLevel());
     }
 
-    enterEditor() {
+    enterEditor(data = null, name = null) {
         console.log('Entering Editor...');
         document.getElementById('menu-screen').classList.remove('active');
         const editorScreen = document.getElementById('editor-screen');
         editorScreen.classList.add('active');
         editorScreen.style.display = 'flex';
+
+        if (data) {
+            this.loadLevelData(data, false);
+            this.loadedLevelName = name;
+        } else {
+            this.clearLevel(true);
+            this.loadedLevelName = null;
+        }
 
         this.selectedElement = null;
         this.updateProps();
@@ -137,6 +154,20 @@ class MapEditor {
         document.getElementById('editor-screen').classList.remove('active');
         document.getElementById('editor-screen').style.display = 'none';
         document.getElementById('menu-screen').classList.add('active');
+    }
+
+    testGame() {
+        const tempLevel = {
+            name: 'Test Level',
+            elements: JSON.parse(JSON.stringify(this.elements)),
+            worldWidth: this.worldWidth,
+            worldHeight: this.worldHeight
+        };
+
+        gameState.selectedCustomLevel = tempLevel;
+        if (window.startGame) {
+            window.startGame();
+        }
     }
 
     resize() {
@@ -259,7 +290,8 @@ class MapEditor {
         const worldPos = this.screenToWorld(mouseX, mouseY);
 
         this.mousePos = { x: mouseX, y: mouseY, worldX: worldPos.x, worldY: worldPos.y };
-        document.getElementById('coord-info').textContent = `${Math.floor(worldPos.x)}, ${Math.floor(worldPos.y)}`;
+        const coordInfo = document.getElementById('coord-info');
+        if (coordInfo) coordInfo.textContent = `${Math.floor(worldPos.x)}, ${Math.floor(worldPos.y)}`;
 
         if (this.panState) {
             const dx = (e.clientX - this.panState.x) / this.camera.zoom;
@@ -350,7 +382,8 @@ class MapEditor {
     zoom(amount) {
         this.camera.zoom *= amount;
         this.camera.zoom = Math.max(this.camera.minZoom, Math.min(this.camera.maxZoom, this.camera.zoom));
-        document.getElementById('zoom-info').textContent = `${Math.round(this.camera.zoom * 100)}%`;
+        const zoomInfo = document.getElementById('zoom-info');
+        if (zoomInfo) zoomInfo.textContent = `${Math.round(this.camera.zoom * 100)}%`;
     }
 
     getResizeSide(el, mouseX, mouseY) {
@@ -409,6 +442,7 @@ class MapEditor {
 
     updateProps() {
         const container = document.getElementById('prop-controls');
+        if (!container) return;
         container.innerHTML = '';
 
         if (!this.selectedElement) return;
@@ -436,17 +470,16 @@ class MapEditor {
                 const opt = document.createElement('div');
                 opt.className = 'tile-option' + (el.tileIndex === idx ? ' selected' : '');
 
-                if (worldTileset && worldTileset.complete) {
-                    const tilesPerRow = Math.floor(worldTileset.width / 16);
+                if (typeof worldTileset !== 'undefined' && worldTileset.complete) {
+                    const ts = typeof TILE_SIZE !== 'undefined' ? TILE_SIZE : 16;
+                    const tilesPerRow = Math.floor(worldTileset.width / ts);
                     const row = Math.floor(idx / tilesPerRow);
                     const col = idx % tilesPerRow;
-                    // Fix: Use correct scaling for the preview box
                     opt.style.backgroundImage = `url("world_tileset.png")`;
-                    opt.style.backgroundPosition = `-${col * TILE_SIZE * 2}px -${row * TILE_SIZE * 2}px`;
+                    opt.style.backgroundPosition = `-${col * ts * 2}px -${row * ts * 2}px`;
                     opt.style.backgroundSize = `${worldTileset.width * 2}px ${worldTileset.height * 2}px`;
                     opt.style.imageRendering = 'pixelated';
                 } else {
-                    // Fallback if not loaded yet
                     opt.style.backgroundColor = '#8B4513';
                 }
 
@@ -477,88 +510,152 @@ class MapEditor {
         container.appendChild(div);
     }
 
-    saveLevel() {
-        const modal = document.getElementById('save-level-modal');
-        const input = document.getElementById('level-name-input');
-        input.value = 'Min bane';
-        modal.classList.add('active');
-        input.focus();
+    generatePreview() {
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.width = 320;
+        previewCanvas.height = 200;
+        const pCtx = previewCanvas.getContext('2d');
+
+        pCtx.fillStyle = '#111';
+        pCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+        const scale = Math.min(previewCanvas.width / this.worldWidth, previewCanvas.height / this.worldHeight);
+        const offsetX = (previewCanvas.width - this.worldWidth * scale) / 2;
+        const offsetY = (previewCanvas.height - this.worldHeight * scale) / 2;
+
+        pCtx.save();
+        pCtx.translate(offsetX, offsetY);
+        pCtx.scale(scale, scale);
+
+        this.renderElements(pCtx, true);
+
+        pCtx.restore();
+        return previewCanvas.toDataURL('image/png');
     }
 
-    confirmSaveLevel() {
-        const modal = document.getElementById('save-level-modal');
-        const input = document.getElementById('level-name-input');
-        const name = input.value.trim();
+    saveLevel() {
+        if (this.loadedLevelName) {
+            // Overwrite existing
+            this.confirmSaveLevel(this.loadedLevelName);
+        } else {
+            // New save
+            const modal = document.getElementById('save-level-modal');
+            const input = document.getElementById('level-name-input');
+            input.value = 'Min bane ' + (Object.keys(JSON.parse(localStorage.getItem('boinkytag_levels') || '{}')).length + 1);
+            modal.classList.add('active');
+            input.focus();
+        }
+    }
+
+    confirmSaveLevel(overrideName = null) {
+        const nameInput = document.getElementById('level-name-input');
+        const name = overrideName || nameInput.value.trim();
 
         if (!name) {
             alert('Du må gi banen et navn!');
             return;
         }
 
+        const previewData = this.generatePreview();
         const levels = JSON.parse(localStorage.getItem('boinkytag_levels') || '{}');
         levels[name] = {
             name: name,
             elements: JSON.parse(JSON.stringify(this.elements)),
             worldWidth: this.worldWidth,
             worldHeight: this.worldHeight,
-            lastModified: Date.now()
+            lastModified: Date.now(),
+            thumbnail: previewData
         };
         localStorage.setItem('boinkytag_levels', JSON.stringify(levels));
-        modal.classList.remove('active');
-        alert('Lagret!');
+        this.loadedLevelName = name;
+
+        document.getElementById('save-level-modal').classList.remove('active');
+
+        // Visual feedback
+        const saveBtn = document.getElementById('editor-save-btn');
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = 'Saved!';
+        saveBtn.style.background = '#4CAF50';
+        setTimeout(() => {
+            saveBtn.textContent = originalText;
+            saveBtn.style.background = '';
+        }, 1500);
     }
 
-    showLevelLoader(isPlayMode = false) {
+    showLevelLoader(mode = 'play') { // 'play', 'load', 'editorEntry'
         const modal = document.getElementById('level-loader-modal');
         const list = document.getElementById('level-list');
+        const header = modal.querySelector('h2');
+
+        if (mode === 'editorEntry') header.textContent = 'Mine Baner';
+        else if (mode === 'play') header.textContent = 'Velg bane å spille';
+        else header.textContent = 'Last inn bane';
+
         list.innerHTML = '';
 
-        const levels = JSON.parse(localStorage.getItem('boinkytag_levels') || '{}');
-
-        if (Object.keys(levels).length === 0) {
-            list.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #666;">Ingen lagrede baner funnet.${isPlayMode ? ' Lag en i Map Editor først!' : ''}</p>`;
+        // Add "Create New" button for editor entry
+        if (mode === 'editorEntry') {
+            const createBtn = document.createElement('button');
+            createBtn.className = 'create-new-btn';
+            createBtn.innerHTML = '＋ LAG NY BANE';
+            createBtn.onclick = () => {
+                this.enterEditor();
+                modal.classList.remove('active');
+            };
+            list.appendChild(createBtn);
         }
 
-        for (const [name, data] of Object.entries(levels)) {
+        const levels = JSON.parse(localStorage.getItem('boinkytag_levels') || '{}');
+        const levelNames = Object.keys(levels).sort((a, b) => levels[b].lastModified - levels[a].lastModified);
+
+        if (levelNames.length === 0) {
+            const p = document.createElement('p');
+            p.style.cssText = 'grid-column: 1/-1; text-align: center; color: #666; margin-top: 20px;';
+            p.textContent = mode === 'play' ? 'Ingen baner funnet. Lag en i mapt editor først!' : 'Ingen lagrede baner funnet.';
+            list.appendChild(p);
+        }
+
+        levelNames.forEach(name => {
+            const data = levels[name];
             const item = document.createElement('div');
             item.className = 'level-item';
+
+            const thumb = data.thumbnail || '';
+
             item.innerHTML = `
+                <div class="level-preview" style="background-image: url(${thumb}); background-size: cover;"></div>
                 <h4>${name}</h4>
-                <p>Elementer: ${data.elements.platforms.length + data.elements.bouncePads.length}</p>
-                <p>Sist endret: ${new Date(data.lastModified).toLocaleDateString()}</p>
-                <button class="delete-level-btn" style="background:#522; color:white; border:none; padding:5px; margin-top:5px; font-size:10px;">Slett</button>
+                <div style="display:flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                    <span style="font-size: 8px; color: #666;">${new Date(data.lastModified).toLocaleDateString()}</span>
+                    <button class="delete-level-btn">X</button>
+                </div>
             `;
 
             item.onclick = (e) => {
-                // Don't trigger if clicking delete button
                 if (e.target.classList.contains('delete-level-btn')) return;
 
-                e.stopPropagation();
-                this.loadLevelData(data, isPlayMode);
                 modal.classList.remove('active');
-                if (isPlayMode) {
-                    if (window.startGame) {
-                        window.startGame();
-                    } else {
-                        console.error('startGame function not found!');
-                        // Fallback
-                        const startBtn = document.getElementById('start-btn');
-                        if (startBtn) startBtn.click();
-                    }
+                if (mode === 'play') {
+                    this.loadLevelData(data, true);
+                    if (window.startGame) window.startGame();
+                } else {
+                    this.enterEditor(data, name);
                 }
             };
 
-            item.querySelector('.delete-level-btn').onclick = (e) => {
+            const delBtn = item.querySelector('.delete-level-btn');
+            delBtn.onclick = (e) => {
                 e.stopPropagation();
-                if (confirm('Slett denne banen?')) {
+                if (confirm(`Slett "${name}"?`)) {
                     delete levels[name];
                     localStorage.setItem('boinkytag_levels', JSON.stringify(levels));
-                    this.showLevelLoader(isPlayMode);
+                    this.showLevelLoader(mode);
                 }
             };
 
             list.appendChild(item);
-        }
+        });
+
         modal.classList.add('active');
     }
 
@@ -566,27 +663,36 @@ class MapEditor {
         if (isPlayMode) {
             gameState.selectedCustomLevel = JSON.parse(JSON.stringify(data));
             document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
-            document.getElementById('load-custom-level-btn').classList.add('selected');
+            const customBtn = document.getElementById('load-custom-level-btn');
+            if (customBtn) customBtn.classList.add('selected');
         } else {
             this.elements = JSON.parse(JSON.stringify(data.elements));
             this.worldWidth = data.worldWidth || 8000;
             this.worldHeight = data.worldHeight || 4800;
-            document.getElementById('map-width-input').value = this.worldWidth;
-            document.getElementById('map-height-input').value = this.worldHeight;
+            const wIn = document.getElementById('map-width-input');
+            const hIn = document.getElementById('map-height-input');
+            if (wIn) wIn.value = this.worldWidth;
+            if (hIn) hIn.value = this.worldHeight;
             this.selectedElement = null;
             this.updateProps();
         }
     }
 
-    clearLevel() {
-        if (confirm('Slett alt i denne banen?')) {
-            this.elements = { platforms: [], bouncePads: [], teleports: [], boostTiles: [], spawnPoints: [] };
+    clearLevel(noConfirm = false) {
+        if (noConfirm || confirm('Slett alt i denne banen?')) {
+            this.elements = this.getEmptyLevel();
+            this.loadedLevelName = null;
             this.selectedElement = null;
             this.updateProps();
         }
     }
 
     render() {
+        if (!this.canvas || !this.ctx || !document.getElementById('editor-screen').classList.contains('active')) {
+            requestAnimationFrame(() => this.render());
+            return;
+        }
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.ctx.save();
@@ -621,18 +727,19 @@ class MapEditor {
     }
 
     renderElements(targetCtx, isMiniMap) {
-        const hasTileset = worldTileset && worldTileset.complete;
-        const tilesPerRow = hasTileset ? Math.floor(worldTileset.width / TILE_SIZE) : 1;
+        const hasTileset = typeof worldTileset !== 'undefined' && worldTileset.complete;
+        const ts = typeof TILE_SIZE !== 'undefined' ? TILE_SIZE : 16;
+        const tilesPerRow = hasTileset ? Math.floor(worldTileset.width / ts) : 1;
 
         this.elements.platforms.forEach(p => {
             if (!isMiniMap && hasTileset) {
                 const row = Math.floor(p.tileIndex / tilesPerRow);
                 const col = p.tileIndex % tilesPerRow;
-                for (let tx = 0; tx < p.width; tx += TILE_SIZE) {
-                    for (let ty = 0; ty < p.height; ty += TILE_SIZE) {
-                        const drawW = Math.min(TILE_SIZE, p.width - tx);
-                        const drawH = Math.min(TILE_SIZE, p.height - ty);
-                        targetCtx.drawImage(worldTileset, col * TILE_SIZE, row * TILE_SIZE, drawW, drawH, p.x + tx, p.y + ty, drawW, drawH);
+                for (let tx = 0; tx < p.width; tx += ts) {
+                    for (let ty = 0; ty < p.height; ty += ts) {
+                        const drawW = Math.min(ts, p.width - tx);
+                        const drawH = Math.min(ts, p.height - ty);
+                        targetCtx.drawImage(worldTileset, col * ts, row * ts, drawW, drawH, p.x + tx, p.y + ty, drawW, drawH);
                     }
                 }
             } else {
@@ -651,8 +758,8 @@ class MapEditor {
                 const bounceIdx = 133;
                 const row = Math.floor(bounceIdx / tilesPerRow);
                 const col = bounceIdx % tilesPerRow;
-                for (let tx = 0; tx < p.width; tx += TILE_SIZE) {
-                    targetCtx.drawImage(worldTileset, col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE, p.x + tx, p.y, TILE_SIZE, p.height);
+                for (let tx = 0; tx < p.width; tx += ts) {
+                    targetCtx.drawImage(worldTileset, col * ts, row * ts, ts, ts, p.x + tx, p.y, ts, p.height);
                 }
             } else {
                 targetCtx.fillStyle = '#0f0';
@@ -669,7 +776,7 @@ class MapEditor {
                 const boostIdx = 87;
                 const row = Math.floor(boostIdx / tilesPerRow);
                 const col = boostIdx % tilesPerRow;
-                targetCtx.drawImage(worldTileset, col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE, p.x, p.y, p.width, p.height);
+                targetCtx.drawImage(worldTileset, col * ts, row * ts, ts, ts, p.x, p.y, p.width, p.height);
             } else {
                 targetCtx.fillStyle = '#ff0';
                 targetCtx.fillRect(p.x, p.y, p.width, p.height);
@@ -712,19 +819,15 @@ class MapEditor {
                 targetCtx.fillStyle = colors[i % colors.length];
                 targetCtx.fillRect(p.x - 50, p.y - 50, 100, 100);
             } else {
-                // Try to draw actual character sprites if available
                 let spriteD = null;
-                // Note: piggySprites and goldenPiggySprites are global from game.js
                 if (i === 0 && typeof piggySprites !== 'undefined' && piggySprites.length > 0) spriteD = piggySprites[0];
                 else if (i === 1 && typeof goldenPiggySprites !== 'undefined' && goldenPiggySprites.length > 0) spriteD = goldenPiggySprites[0];
 
                 if (spriteD && spriteD.image && spriteD.image.complete) {
                     targetCtx.save();
-                    // Center the sprite on the spawn point
                     const drawX = p.x - 20;
                     const drawY = p.y - 20;
                     targetCtx.drawImage(spriteD.image, drawX, drawY, 40, 40);
-
                     if (p === this.selectedElement?.element) {
                         targetCtx.strokeStyle = '#fff';
                         targetCtx.lineWidth = 2;
