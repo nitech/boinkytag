@@ -25,8 +25,9 @@ class MapEditor {
 
         this.elements = this.getEmptyLevel();
 
-        this.currentTool = 'platform';
+        this.currentTool = 'select';
         this.selectedElement = null;
+        this.pickingTeleportTarget = false;
         this.interaction = {
             type: 'none',
             startX: 0,
@@ -45,6 +46,8 @@ class MapEditor {
         this.platformTiles = [0, 2, 4, 6, 7];
         this.selectedTileIndex = 0;
 
+        this.autoSaveTimer = null;
+
         this.setupEventListeners();
         this.resize();
         this.render();
@@ -52,17 +55,43 @@ class MapEditor {
 
     getEmptyLevel() {
         return {
-            platforms: [],
+            platforms: [
+                { x: 0, y: this.worldHeight - this.tileSize, width: this.worldWidth, height: this.tileSize, tileIndex: 0, isFloor: true }
+            ],
             bouncePads: [],
             teleports: [],
             boostTiles: [],
             spawnPoints: [
-                { x: 4000, y: 4700 },
-                { x: 4100, y: 4700 },
-                { x: 3900, y: 4700 },
-                { x: 4050, y: 4700 }
+                { x: this.worldWidth / 2 - 50, y: this.worldHeight - 100 },
+                { x: this.worldWidth / 2 + 50, y: this.worldHeight - 100 },
+                { x: this.worldWidth / 2 - 150, y: this.worldHeight - 100 },
+                { x: this.worldWidth / 2 + 150, y: this.worldHeight - 100 }
             ]
         };
+    }
+
+    isAreaOccupied(x, y, w, h, excludeEl = null) {
+        const categories = ['platforms', 'bouncePads', 'teleports', 'boostTiles'];
+        for (const cat of categories) {
+            for (const el of this.elements[cat]) {
+                if (el === excludeEl) continue;
+                if (x < el.x + el.width && x + w > el.x && y < el.y + el.height && y + h > el.y) {
+                    return true;
+                }
+            }
+        }
+        // Also check spawn points (approx 40x40)
+        for (const p of this.elements.spawnPoints) {
+            if (p === excludeEl) continue;
+            if (x < p.x + 20 && x + w > p.x - 20 && y < p.y + 20 && y + h > p.y - 20) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    isOutOfBounds(x, y, w, h) {
+        return x < 0 || y < 0 || x + w > this.worldWidth || y + h > this.worldHeight;
     }
 
     setupEventListeners() {
@@ -74,16 +103,8 @@ class MapEditor {
         this.canvas.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
         this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-        // Tool buttons
-        document.querySelectorAll('.tool-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.currentTool = btn.dataset.tool;
-                this.selectedElement = null;
-                this.updateProps();
-            });
-        });
+        // Tool logic moved to updateProps/renderToolbox
+        this.updateProps();
 
         // Action buttons
         document.getElementById('editor-save-btn').addEventListener('click', () => this.saveLevel());
@@ -100,15 +121,19 @@ class MapEditor {
         document.getElementById('editor-zoom-in').addEventListener('click', () => this.zoom(1.2));
         document.getElementById('editor-zoom-out').addEventListener('click', () => this.zoom(1 / 1.2));
 
-        // Map size inputs
+        // Map size inputs (optional)
         const widthInput = document.getElementById('map-width-input');
         const heightInput = document.getElementById('map-height-input');
-        widthInput.addEventListener('change', (e) => {
-            this.worldWidth = parseInt(e.target.value) || 8000;
-        });
-        heightInput.addEventListener('change', (e) => {
-            this.worldHeight = parseInt(e.target.value) || 4800;
-        });
+        if (widthInput) {
+            widthInput.addEventListener('change', (e) => {
+                this.worldWidth = parseInt(e.target.value) || 8000;
+            });
+        }
+        if (heightInput) {
+            heightInput.addEventListener('change', (e) => {
+                this.worldHeight = parseInt(e.target.value) || 4800;
+            });
+        }
 
         document.getElementById('map-editor-btn').addEventListener('click', () => this.showLevelLoader('editorEntry'));
         document.getElementById('load-custom-level-btn').addEventListener('click', () => this.showLevelLoader('play'));
@@ -132,10 +157,9 @@ class MapEditor {
 
     enterEditor(data = null, name = null) {
         console.log('Entering Editor...');
-        document.getElementById('menu-screen').classList.remove('active');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         const editorScreen = document.getElementById('editor-screen');
         editorScreen.classList.add('active');
-        editorScreen.style.display = 'flex';
 
         if (data) {
             this.loadLevelData(data, false);
@@ -151,12 +175,12 @@ class MapEditor {
     }
 
     exitEditor() {
-        document.getElementById('editor-screen').classList.remove('active');
-        document.getElementById('editor-screen').style.display = 'none';
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('menu-screen').classList.add('active');
     }
 
     testGame() {
+        console.log('Testing game from editor...');
         const tempLevel = {
             name: 'Test Level',
             elements: JSON.parse(JSON.stringify(this.elements)),
@@ -166,7 +190,9 @@ class MapEditor {
 
         gameState.selectedCustomLevel = tempLevel;
         if (window.startGame) {
-            window.startGame();
+            window.startGame(true);
+        } else {
+            console.error('window.startGame not found!');
         }
     }
 
@@ -226,13 +252,28 @@ class MapEditor {
         const snappedX = Math.round(worldPos.x / this.gridSize) * this.gridSize;
         const snappedY = Math.round(worldPos.y / this.gridSize) * this.gridSize;
 
+        if (this.pickingTeleportTarget && this.selectedElement?.type === 'teleports') {
+            const el = this.selectedElement.element;
+            el.targetX = snappedX;
+            el.targetY = snappedY;
+            this.pickingTeleportTarget = false;
+            this.updateProps();
+            this.autoSave();
+            return;
+        }
+
         const found = this.findElementAt(worldPos.x, worldPos.y);
 
         if (found) {
             this.selectedElement = found;
             this.updateProps();
 
-            const side = this.getResizeSide(found.element, worldPos.x, worldPos.y);
+            let side = this.getResizeSide(found.element, worldPos.x, worldPos.y);
+            // Limit resize sides for platforms/bounce
+            if (found.type === 'platforms' || found.type === 'bouncePads') {
+                side = side.replace(/[ns]/g, '');
+            }
+
             if (side && (found.type === 'platforms' || found.type === 'bouncePads')) {
                 this.interaction = {
                     type: 'resizing',
@@ -259,14 +300,22 @@ class MapEditor {
             this.selectedElement = null;
             this.updateProps();
 
+            if (this.currentTool === 'select') return;
+
             if (this.currentTool === 'platform' || this.currentTool === 'bounce') {
+                const h = this.tileSize;
                 const newEl = {
                     x: snappedX,
                     y: snappedY,
                     width: this.gridSize,
-                    height: this.gridSize,
+                    height: h,
                     tileIndex: this.selectedTileIndex
                 };
+
+                if (this.isOutOfBounds(newEl.x, newEl.y, newEl.width, newEl.height) || this.isAreaOccupied(newEl.x, newEl.y, newEl.width, newEl.height)) {
+                    return;
+                }
+
                 const cat = this.currentTool === 'platform' ? 'platforms' : 'bouncePads';
                 this.elements[cat].push(newEl);
                 this.selectedElement = { type: cat, element: newEl, index: this.elements[cat].length - 1 };
@@ -308,53 +357,73 @@ class MapEditor {
         if (this.interaction.type === 'creating') {
             const el = this.interaction.element;
             const x1 = Math.min(this.interaction.startX, snappedX);
-            const y1 = Math.min(this.interaction.startY, snappedY);
             const x2 = Math.max(this.interaction.startX, snappedX);
-            const y2 = Math.max(this.interaction.startY, snappedY);
-            el.x = x1;
-            el.y = y1;
-            el.width = Math.max(this.gridSize, x2 - x1);
-            el.height = Math.max(this.gridSize, y2 - y1);
+            const y1 = this.interaction.startY; // Lock Y for platforms/bounce
+            const h = this.tileSize;
+
+            const newX = x1;
+            const newW = Math.max(this.gridSize, x2 - x1);
+
+            if (!this.isOutOfBounds(newX, y1, newW, h) && !this.isAreaOccupied(newX, y1, newW, h, el)) {
+                el.x = newX;
+                el.y = y1;
+                el.width = newW;
+                el.height = h;
+            }
         } else if (this.interaction.type === 'moving') {
             const el = this.interaction.element;
+            if (el.isFloor) return; // Cannot move floor
+
             const dx = worldPos.x - this.interaction.startX;
             const dy = worldPos.y - this.interaction.startY;
-            el.x = Math.round((this.interaction.origX + dx) / this.gridSize) * this.gridSize;
-            el.y = Math.round((this.interaction.origY + dy) / this.gridSize) * this.gridSize;
-            this.updateProps();
+            const newX = Math.round((this.interaction.origX + dx) / this.gridSize) * this.gridSize;
+            const newY = Math.round((this.interaction.origY + dy) / this.gridSize) * this.gridSize;
+
+            if (!this.isOutOfBounds(newX, newY, el.width, el.height) && !this.isAreaOccupied(newX, newY, el.width, el.height, el)) {
+                el.x = newX;
+                el.y = newY;
+                this.updateProps();
+            }
         } else if (this.interaction.type === 'resizing') {
             const el = this.interaction.element;
+            if (el.isFloor) return; // Cannot resize floor
+
             const dir = this.interaction.resizeDir;
             const dx = worldPos.x - this.interaction.startX;
-            const dy = worldPos.y - this.interaction.startY;
+
+            let newX = el.x;
+            let newW = el.width;
 
             if (dir.includes('e')) {
-                el.width = Math.max(this.gridSize, Math.round((this.interaction.origW + dx) / this.gridSize) * this.gridSize);
+                newW = Math.max(this.gridSize, Math.round((this.interaction.origW + dx) / this.gridSize) * this.gridSize);
             }
             if (dir.includes('w')) {
-                const newW = Math.max(this.gridSize, Math.round((this.interaction.origW - dx) / this.gridSize) * this.gridSize);
-                const actualDx = this.interaction.origW - newW;
-                el.x = this.interaction.origX + actualDx;
+                const nw = Math.max(this.gridSize, Math.round((this.interaction.origW - dx) / this.gridSize) * this.gridSize);
+                const actualDx = this.interaction.origW - nw;
+                newX = this.interaction.origX + actualDx;
+                newW = nw;
+            }
+
+            if (!this.isOutOfBounds(newX, el.y, newW, el.height) && !this.isAreaOccupied(newX, el.y, newW, el.height, el)) {
+                el.x = newX;
                 el.width = newW;
+                this.updateProps();
             }
-            if (dir.includes('s')) {
-                el.height = Math.max(this.gridSize, Math.round((this.interaction.origH + dy) / this.gridSize) * this.gridSize);
-            }
-            if (dir.includes('n')) {
-                const newH = Math.max(this.gridSize, Math.round((this.interaction.origH - dy) / this.gridSize) * this.gridSize);
-                const actualDy = this.interaction.origH - newH;
-                el.y = this.interaction.origY + actualDy;
-                el.height = newH;
-            }
-            this.updateProps();
         } else {
             const found = this.findElementAt(worldPos.x, worldPos.y);
             if (found) {
                 const side = this.getResizeSide(found.element, worldPos.x, worldPos.y);
-                if (side && (found.type === 'platforms' || found.type === 'bouncePads')) {
-                    this.canvas.style.cursor = side + '-resize';
-                } else {
+                if (side && !found.element.isFloor && (found.type === 'platforms' || found.type === 'bouncePads')) {
+                    // Only horizontal resize for platforms/bounce
+                    if (side.includes('e') || side.includes('w')) {
+                        this.canvas.style.cursor = 'ew-resize';
+                    } else {
+                        this.canvas.style.cursor = 'move';
+                    }
+                } else if (!found.element.isFloor) {
                     this.canvas.style.cursor = 'move';
+                } else {
+                    this.canvas.style.cursor = 'default';
                 }
             } else {
                 this.canvas.style.cursor = 'crosshair';
@@ -369,6 +438,7 @@ class MapEditor {
         this.panState = null;
         this.interaction.type = 'none';
         this.updateProps();
+        this.autoSave();
     }
 
     handleWheel(e) {
@@ -417,30 +487,66 @@ class MapEditor {
     }
 
     placeElement(x, y) {
+        let w = 0, h = 0;
         switch (this.currentTool) {
             case 'teleport':
-                this.elements.teleports.push({ x, y, width: 40, height: 40, targetX: x + 200, targetY: y - 200 });
+                w = 40; h = 40;
+                if (!this.isOutOfBounds(x, y, w, h) && !this.isAreaOccupied(x, y, w, h)) {
+                    this.elements.teleports.push({ x, y, width: w, height: h, targetX: x + 200, targetY: y - 200 });
+                }
                 break;
             case 'boost':
-                this.elements.boostTiles.push({ x, y, width: 16, height: 16 });
+                w = 48; h = 48;
+                // Find nearest platform below
+                let platformBelow = null;
+                let minY = this.worldHeight;
+                this.elements.platforms.forEach(p => {
+                    // Check if x coordinate overlaps the platform
+                    if (x + w > p.x && x < p.x + p.width) {
+                        // Check if platform is below the mouse y
+                        if (p.y >= y - 20 && p.y < minY) {
+                            minY = p.y;
+                            platformBelow = p;
+                        }
+                    }
+                });
+
+                if (platformBelow) {
+                    const finalY = platformBelow.y - h;
+                    if (!this.isOutOfBounds(x, finalY, w, h) && !this.isAreaOccupied(x, finalY, w, h)) {
+                        this.elements.boostTiles.push({ x, y: finalY, width: w, height: h });
+                    }
+                } else {
+                    alert("Sopp må plasseres over en plattform!");
+                }
                 break;
             case 'spawn':
-                this.elements.spawnPoints.push({ x, y });
-                if (this.elements.spawnPoints.length > 4) this.elements.spawnPoints.shift();
+                if (!this.isOutOfBounds(x, y, 40, 40) && !this.isAreaOccupied(x, y, 40, 40)) {
+                    this.elements.spawnPoints.push({ x, y });
+                    if (this.elements.spawnPoints.length > 4) this.elements.spawnPoints.shift();
+                }
                 break;
         }
         this.updateProps();
+        this.autoSave();
     }
 
     deleteSelected() {
         if (!this.selectedElement) return;
-        const { type, index } = this.selectedElement;
+        const { type, index, element } = this.selectedElement;
+        if (element.isFloor) {
+            alert("Du kan ikke slette gulvet!");
+            return;
+        }
         this.elements[type].splice(index, 1);
         this.selectedElement = null;
         this.updateProps();
+        this.autoSave();
     }
 
     updateProps() {
+        this.renderToolbox();
+
         const container = document.getElementById('prop-controls');
         if (!container) return;
         container.innerHTML = '';
@@ -450,17 +556,11 @@ class MapEditor {
         const el = this.selectedElement.element;
         const type = this.selectedElement.type;
 
-        this.createPropInput(container, 'X', el.x, (val) => el.x = parseInt(val));
-        this.createPropInput(container, 'Y', el.y, (val) => el.y = parseInt(val));
-
-        if (type === 'platforms' || type === 'bouncePads') {
-            this.createPropInput(container, 'Bredde', el.width, (val) => el.width = parseInt(val));
-            this.createPropInput(container, 'Høyde', el.height, (val) => el.height = parseInt(val));
-        }
+        // X, Y, W, H inputs hidden as requested
 
         if (type === 'platforms') {
             const label = document.createElement('label');
-            label.textContent = 'Baneutseende:';
+            label.textContent = 'Verktøy (Baneutseende):';
             container.appendChild(label);
 
             const selector = document.createElement('div');
@@ -470,7 +570,7 @@ class MapEditor {
                 const opt = document.createElement('div');
                 opt.className = 'tile-option' + (el.tileIndex === idx ? ' selected' : '');
 
-                if (typeof worldTileset !== 'undefined' && worldTileset.complete) {
+                if (typeof worldTileset !== 'undefined' && worldTileset && worldTileset.complete) {
                     const ts = typeof TILE_SIZE !== 'undefined' ? TILE_SIZE : 16;
                     const tilesPerRow = Math.floor(worldTileset.width / ts);
                     const row = Math.floor(idx / tilesPerRow);
@@ -494,9 +594,90 @@ class MapEditor {
         }
 
         if (type === 'teleports') {
-            this.createPropInput(container, 'Mål X', el.targetX, (val) => el.targetX = parseInt(val));
-            this.createPropInput(container, 'Mål Y', el.targetY, (val) => el.targetY = parseInt(val));
+            const btn = document.createElement('button');
+            btn.className = 'editor-btn-secondary';
+            btn.style.width = '100%';
+            btn.style.marginTop = '10px';
+            btn.textContent = this.pickingTeleportTarget ? 'Klikk på kartet...' : 'Angi målposisjon';
+            btn.onclick = () => {
+                this.pickingTeleportTarget = !this.pickingTeleportTarget;
+                this.updateProps();
+            };
+            container.appendChild(btn);
         }
+    }
+
+    renderToolbox() {
+        const container = document.getElementById('tool-selector');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // Select Tool
+        const selectBtn = document.createElement('button');
+        selectBtn.className = 'tool-sidebar-btn' + (this.currentTool === 'select' ? ' active' : '');
+        selectBtn.innerHTML = '<span>🖱️</span> Velg';
+        selectBtn.onclick = () => {
+            this.currentTool = 'select';
+            this.updateProps();
+        };
+        container.appendChild(selectBtn);
+
+        // Platform Category
+        const platLabel = document.createElement('div');
+        platLabel.className = 'tool-category-label';
+        platLabel.textContent = 'Platformer';
+        container.appendChild(platLabel);
+
+        const platGrid = document.createElement('div');
+        platGrid.className = 'tile-selector sidebar-tiles';
+        this.platformTiles.forEach(idx => {
+            const opt = document.createElement('div');
+            opt.className = 'tile-option' + (this.currentTool === 'platform' && this.selectedTileIndex === idx ? ' selected' : '');
+
+            if (typeof worldTileset !== 'undefined' && worldTileset && worldTileset.complete) {
+                const ts = typeof TILE_SIZE !== 'undefined' ? TILE_SIZE : 16;
+                const tilesPerRow = Math.floor(worldTileset.width / ts);
+                const row = Math.floor(idx / tilesPerRow);
+                const col = idx % tilesPerRow;
+                opt.style.backgroundImage = `url("world_tileset.png")`;
+                opt.style.backgroundPosition = `-${col * ts * 2}px -${row * ts * 2}px`;
+                opt.style.backgroundSize = `${worldTileset.width * 2}px ${worldTileset.height * 2}px`;
+            } else {
+                opt.style.backgroundColor = '#8B4513';
+            }
+
+            opt.onclick = () => {
+                this.currentTool = 'platform';
+                this.selectedTileIndex = idx;
+                this.updateProps();
+            };
+            platGrid.appendChild(opt);
+        });
+        container.appendChild(platGrid);
+
+        // Others Category
+        const otherLabel = document.createElement('div');
+        otherLabel.className = 'tool-category-label';
+        otherLabel.textContent = 'Andre ting';
+        container.appendChild(otherLabel);
+
+        const otherTools = [
+            { id: 'bounce', label: 'Bounce', icon: '🟢' },
+            { id: 'teleport', label: 'Teleport', icon: '🌀' },
+            { id: 'boost', label: 'Boost', icon: '🍄' },
+            { id: 'spawn', label: 'Spawn', icon: '🐷' }
+        ];
+
+        otherTools.forEach(t => {
+            const btn = document.createElement('button');
+            btn.className = 'tool-sidebar-btn' + (this.currentTool === t.id ? ' active' : '');
+            btn.innerHTML = `<span>${t.icon}</span> ${t.label}`;
+            btn.onclick = () => {
+                this.currentTool = t.id;
+                this.updateProps();
+            };
+            container.appendChild(btn);
+        });
     }
 
     createPropInput(container, label, value, onChange) {
@@ -506,6 +687,8 @@ class MapEditor {
         const input = div.querySelector('input');
         input.addEventListener('change', (e) => {
             onChange(e.target.value);
+            this.updateProps();
+            this.autoSave();
         });
         container.appendChild(div);
     }
@@ -547,12 +730,12 @@ class MapEditor {
         }
     }
 
-    confirmSaveLevel(overrideName = null) {
+    confirmSaveLevel(overrideName = null, isSilent = false) {
         const nameInput = document.getElementById('level-name-input');
         const name = overrideName || nameInput.value.trim();
 
         if (!name) {
-            alert('Du må gi banen et navn!');
+            if (!isSilent) alert('Du må gi banen et navn!');
             return;
         }
 
@@ -571,16 +754,35 @@ class MapEditor {
 
         document.getElementById('save-level-modal').classList.remove('active');
 
-        // Visual feedback
-        const saveBtn = document.getElementById('editor-save-btn');
-        const originalText = saveBtn.textContent;
-        saveBtn.textContent = 'Saved!';
-        saveBtn.style.background = '#4CAF50';
-        setTimeout(() => {
-            saveBtn.textContent = originalText;
-            saveBtn.style.background = '';
-        }, 1500);
+        if (!isSilent) {
+            // Visual feedback
+            const saveBtn = document.getElementById('editor-save-btn');
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Saved!';
+            saveBtn.style.background = '#4CAF50';
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.style.background = '';
+            }, 1500);
+        }
     }
+
+    autoSave() {
+        if (this.loadedLevelName) {
+            this.confirmSaveLevel(this.loadedLevelName, true);
+        }
+    }
+
+    debounce(func, delay) {
+        let timeout;
+        return function (...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+
+    autoSaveDebounced = this.debounce(() => this.autoSave(), 1000);
 
     showLevelLoader(mode = 'play') { // 'play', 'load', 'editorEntry'
         const modal = document.getElementById('level-loader-modal');
@@ -727,7 +929,7 @@ class MapEditor {
     }
 
     renderElements(targetCtx, isMiniMap) {
-        const hasTileset = typeof worldTileset !== 'undefined' && worldTileset.complete;
+        const hasTileset = typeof worldTileset !== 'undefined' && worldTileset && worldTileset.complete;
         const ts = typeof TILE_SIZE !== 'undefined' ? TILE_SIZE : 16;
         const tilesPerRow = hasTileset ? Math.floor(worldTileset.width / ts) : 1;
 

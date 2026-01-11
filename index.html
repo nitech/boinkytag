@@ -16,7 +16,7 @@
         <canvas id="menuCanvas"
             style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: -1; pointer-events: none;"></canvas>
         <div class="menu-container">
-            <h1>Boinkytag</h1>
+            <img src="logo.png" class="logo-header" alt="Boinkytag Logo">
             <p class="subtitle">Et lokalt multiplayer tatt-spill!</p>
 
             <div class="selection-group">
@@ -70,13 +70,6 @@
         <div class="editor-toolbar">
             <button id="editor-back-btn" class="editor-btn">Meny</button>
             <div class="tool-group">
-                <button class="tool-btn active" data-tool="platform">Platform</button>
-                <button class="tool-btn" data-tool="bounce">Bounce</button>
-                <button class="tool-btn" data-tool="teleport">Teleport</button>
-                <button class="tool-btn" data-tool="boost">Boost</button>
-                <button class="tool-btn" data-tool="spawn">Spawn</button>
-            </div>
-            <div class="tool-group">
                 <button id="editor-zoom-out" class="editor-btn">-</button>
                 <button id="editor-zoom-in" class="editor-btn">+</button>
                 <button id="editor-save-btn" class="editor-btn">Save</button>
@@ -85,22 +78,20 @@
                     style="background: var(--accent-color); color: #000;">Test</button>
                 <button id="editor-clear-btn" class="editor-btn">Clear</button>
             </div>
-            <div class="tool-group map-size-controls">
-                <label>Bredde:</label>
-                <input type="number" id="map-width-input" value="8000" step="100">
-                <label>Høyde:</label>
-                <input type="number" id="map-height-input" value="4800" step="100">
-            </div>
             <div class="status-info">
                 <span id="coord-info">0, 0</span>
                 <span id="zoom-info">100%</span>
             </div>
+            <!-- Toolbar simplified -->
         </div>
         <div class="editor-main">
             <canvas id="editorCanvas"></canvas>
             <div id="editor-props" class="editor-props">
                 <canvas id="miniMapCanvas"></canvas>
-                <h3>Egenskaper</h3>
+                <h3>Verktøy</h3>
+                <div id="tool-selector" class="tool-selector-sidebar">
+                    <!-- Tools added via JS -->
+                </div>
                 <div id="prop-controls">
                     <!-- Controls added via JS -->
                 </div>

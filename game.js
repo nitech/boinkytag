@@ -21,7 +21,8 @@ let gameState = {
         zoom: 1,
         minZoom: 0.1,
         maxZoom: 1.5
-    }
+    },
+    isTestMode: false
 };
 
 // Canvas setup - wait for DOM
@@ -807,8 +808,8 @@ class BoostTile {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = TILE_SIZE;
-        this.height = TILE_SIZE;
+        this.width = TILE_SIZE * 3; // Make boost tiles much larger (48x48)
+        this.height = TILE_SIZE * 3;
         this.tileIndex = 87;
         this.pulse = 0;
     }
@@ -830,19 +831,11 @@ class BoostTile {
         const spriteX = tileCol * TILE_SIZE;
         const spriteY = tileRow * TILE_SIZE;
 
-        // Add pulsing glow effect
-        const glowAlpha = 0.3 + Math.sin(this.pulse) * 0.2;
-        ctx.save();
-        ctx.globalAlpha = glowAlpha;
-        ctx.fillStyle = '#ffff00';
-        ctx.fillRect(this.x - 2, this.y - 2, this.width + 4, this.height + 4);
-        ctx.restore();
-
-        // Draw the tile
+        // Draw the tile larger without any background frames
         ctx.drawImage(
             worldTileset,
-            spriteX, spriteY, TILE_SIZE, TILE_SIZE, // Source: tile 87 from tileset
-            this.x, this.y, TILE_SIZE, TILE_SIZE // Destination: position on canvas
+            spriteX, spriteY, TILE_SIZE, TILE_SIZE,
+            this.x, this.y, this.width, this.height
         );
     }
 
@@ -1720,16 +1713,24 @@ function setupUIHandlers() {
         return;
     }
 
-    window.startGame = () => {
+    window.startGame = (testMode = false) => {
         // Player count is already set by buttons
         // Reset scores when starting new game
         gameState.scores = {};
         gameState.roundProcessed = false;
+        // Ensure testMode is strictly true (avoid event objects)
+        gameState.isTestMode = testMode === true;
 
         if (gameState.selectedCustomLevel) {
             loadLevel(gameState.selectedCustomLevel);
         } else {
             loadLevel(gameState.currentLevel);
+        }
+
+        // Reset menu button text if not in test mode
+        const menuBtn = document.getElementById('menu-btn');
+        if (menuBtn) {
+            menuBtn.textContent = gameState.isTestMode ? 'Til editoren' : 'Meny';
         }
 
         gameState.gameRunning = true;
@@ -1750,7 +1751,12 @@ function setupUIHandlers() {
     menuBtn.addEventListener('click', () => {
         gameState.gameRunning = false;
         document.getElementById('game-screen').classList.remove('active');
-        document.getElementById('menu-screen').classList.add('active');
+
+        if (gameState.isTestMode) {
+            document.getElementById('editor-screen').classList.add('active');
+        } else {
+            document.getElementById('menu-screen').classList.add('active');
+        }
     });
 }
 

@@ -13,7 +13,7 @@ class MenuParticle {
     constructor() {
         this.reset();
         // Start with random life to avoid popping in all at once
-        this.life = Math.random(); 
+        this.life = Math.random();
     }
 
     reset() {
@@ -40,8 +40,8 @@ class MenuParticle {
         this.y += this.vy;
         this.life += 0.016;
 
-        if (this.life >= this.maxLife || 
-            this.x < 0 || this.x > menuCanvas.width || 
+        if (this.life >= this.maxLife ||
+            this.x < 0 || this.x > menuCanvas.width ||
             this.y < 0 || this.y > menuCanvas.height) {
             this.reset();
         }
@@ -49,19 +49,19 @@ class MenuParticle {
 
     draw() {
         menuCtx.fillStyle = this.color;
-        
+
         // Blink/fade effect
         const opacity = Math.sin((this.life / this.maxLife) * Math.PI);
         menuCtx.globalAlpha = opacity * 0.6;
-        
+
         // Pixelated draw
         menuCtx.fillRect(
-            Math.floor(this.x), 
-            Math.floor(this.y), 
-            Math.floor(this.size), 
+            Math.floor(this.x),
+            Math.floor(this.y),
+            Math.floor(this.size),
             Math.floor(this.size)
         );
-        
+
         menuCtx.globalAlpha = 1.0;
     }
 }
@@ -70,7 +70,7 @@ function initMenuParticles() {
     menuParticles = [];
     // Create density based on screen size
     const particleCount = Math.floor((window.innerWidth * window.innerHeight) / 10000);
-    
+
     for (let i = 0; i < particleCount; i++) {
         menuParticles.push(new MenuParticle());
     }
@@ -78,12 +78,12 @@ function initMenuParticles() {
 
 function animateMenu() {
     menuCtx.clearRect(0, 0, menuCanvas.width, menuCanvas.height);
-    
+
     menuParticles.forEach(p => {
         p.update();
         p.draw();
     });
-    
+
     if (document.getElementById('menu-screen').classList.contains('active')) {
         menuAnimationId = requestAnimationFrame(animateMenu);
     }
