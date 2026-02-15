@@ -188,6 +188,13 @@ class MapEditor {
             // Check if we're in an input field
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             
+            // Delete selected element with DELETE key
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.preventDefault();
+                this.deleteSelected();
+                return;
+            }
+            
             if (e.ctrlKey || e.metaKey) {
                 if (e.key === 'z' || e.key === 'Z') {
                     e.preventDefault();
@@ -225,6 +232,10 @@ class MapEditor {
             this.clearLevel(true);
             this.loadedLevelName = null;
         }
+
+        // Set first platform tile as default when entering editor
+        this.currentTool = 'platform';
+        this.selectedTileIndex = this.platformTiles[0];
 
         this.selectedElement = null;
         this.updateProps();
