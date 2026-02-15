@@ -1294,6 +1294,10 @@ function loadLevel(levelSource) {
     updateScoreDisplay();
 }
 
+// Mobile detection
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                 (window.innerWidth <= 768 && 'ontouchstart' in window);
+
 // Input handling
 const keys = {};
 const keysPressed = {}; // Track keys that were just pressed (not held)
@@ -1303,6 +1307,12 @@ const playerControls = [
     { left: 'KeyJ', right: 'KeyL', up: 'KeyI' },
     { left: 'KeyF', right: 'KeyH', up: 'KeyT' }
 ];
+
+// Touch input state for mobile
+const touchControls = {
+    player1: { left: false, right: false, jump: false },
+    player2: { left: false, right: false, jump: false }
+};
 
 document.addEventListener('keydown', (e) => {
     if (!keys[e.code]) {
@@ -1325,14 +1335,27 @@ function handleInput() {
         const controls = playerControls[index];
         player.velocityX = 0;
 
-        if (keys[controls.left]) {
-            player.velocityX = -player.speed;
-        }
-        if (keys[controls.right]) {
-            player.velocityX = player.speed;
+        // Check mobile touch controls first (only for 2 players)
+        if (isMobile && gameState.playerCount === 2) {
+            const touchState = index === 0 ? touchControls.player1 : touchControls.player2;
+            
+            if (touchState.left) {
+                player.velocityX = -player.speed;
+            }
+            if (touchState.right) {
+                player.velocityX = player.speed;
+            }
+        } else {
+            // Desktop keyboard controls
+            if (keys[controls.left]) {
+                player.velocityX = -player.speed;
+            }
+            if (keys[controls.right]) {
+                player.velocityX = player.speed;
+            }
         }
 
-        // Handle jump with double jump support
+        // Handle jump with double jump support (works for both mobile and desktop)
         if (keysPressed[controls.up]) {
             // Only jump if we haven't used all jumps
             if (player.jumpsUsed < player.maxJumps) {
@@ -1588,7 +1611,19 @@ function updateScoreDisplay() {
     // Clear existing score items
     scoreContainer.innerHTML = '';
 
-    // Create score display for each player
+    // On mobile with 2 players, show simple "X/Y" format
+    if (isMobile && gameState.playerCount === 2 && gameState.players.length >= 2) {
+        const player1Score = gameState.scores[0] || 0;
+        const player2Score = gameState.scores[1] || 0;
+        
+        const scoreText = document.createElement('div');
+        scoreText.className = 'score-text-mobile';
+        scoreText.textContent = `${player1Score}/${player2Score}`;
+        scoreContainer.appendChild(scoreText);
+        return;
+    }
+
+    // Desktop: Create score display for each player with graphics
     gameState.players.forEach((player, index) => {
         const score = gameState.scores[player.id] || 0;
 
@@ -1703,6 +1738,129 @@ function updateMenuCharacterIcons() {
     }
 }
 
+// Setup mobile controls for two-player mode
+function setupMobileControls() {
+    if (!isMobile || gameState.playerCount !== 2) return;
+
+    const gameScreen = document.getElementById('game-screen');
+    if (!gameScreen) return;
+
+    // Remove existing mobile controls if any
+    const existingControls = document.getElementById('mobile-controls');
+    if (existingControls) existingControls.remove();
+
+    // Create controls container
+    const controlsContainer = document.createElement('div');
+    controlsContainer.id = 'mobile-controls';
+    controlsContainer.className = 'mobile-controls';
+    
+    // Player 1 controls (left bottom corner)
+    const p1Controls = document.createElement('div');
+    p1Controls.className = 'player-controls player-1-controls';
+    p1Controls.innerHTML = `
+        <div class="control-row">
+            <button class="control-btn left-btn" data-player="1" data-action="left" aria-label="Venstre">←</button>
+            <button class="control-btn right-btn" data-player="1" data-action="right" aria-label="Høyre">→</button>
+        </div>
+        <button class="control-btn jump-btn" data-player="1" data-action="jump" aria-label="Hopp">↑</button>
+    `;
+
+    // Player 2 controls (right bottom corner)
+    const p2Controls = document.createElement('div');
+    p2Controls.className = 'player-controls player-2-controls';
+    p2Controls.innerHTML = `
+        <div class="control-row">
+            <button class="control-btn left-btn" data-player="2" data-action="left" aria-label="Venstre">←</button>
+            <button class="control-btn right-btn" data-player="2" data-action="right" aria-label="Høyre">→</button>
+        </div>
+        <button class="control-btn jump-btn" data-player="2" data-action="jump" aria-label="Hopp">↑</button>
+    `;
+
+    controlsContainer.appendChild(p1Controls);
+    controlsContainer.appendChild(p2Controls);
+    gameScreen.appendChild(controlsContainer);
+
+    // Touch event handlers
+    const handleTouchStart = (e) => {
+        e.preventDefault();
+        const btn = e.target.closest('.control-btn');
+        if (!btn) return;
+        
+        const player = btn.dataset.player;
+        const action = btn.dataset.action;
+        
+        if (player === '1') {
+            if (action === 'jump') {
+                // For jump, simulate key press
+                const controls = playerControls[0];
+                keysPressed[controls.up] = true;
+            } else {
+                touchControls.player1[action] = true;
+            }
+        } else if (player === '2') {
+            if (action === 'jump') {
+                // For jump, simulate key press
+                const controls = playerControls[1];
+                keysPressed[controls.up] = true;
+            } else {
+                touchControls.player2[action] = true;
+            }
+        }
+        
+        // Visual feedback
+        btn.classList.add('active');
+    };
+
+    const handleTouchEnd = (e) => {
+        e.preventDefault();
+        const btn = e.target.closest('.control-btn');
+        if (!btn) return;
+        
+        const player = btn.dataset.player;
+        const action = btn.dataset.action;
+        
+        if (player === '1' && action !== 'jump') {
+            touchControls.player1[action] = false;
+        } else if (player === '2' && action !== 'jump') {
+            touchControls.player2[action] = false;
+        }
+        
+        // Visual feedback
+        btn.classList.remove('active');
+    };
+
+    const handleTouchCancel = (e) => {
+        // Reset all controls on touch cancel
+        touchControls.player1 = { left: false, right: false, jump: false };
+        touchControls.player2 = { left: false, right: false, jump: false };
+        
+        // Remove active class from all buttons
+        controlsContainer.querySelectorAll('.control-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+    };
+
+    controlsContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+    controlsContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+    controlsContainer.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+    
+    // Also support mouse events for testing on desktop
+    controlsContainer.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        handleTouchStart(e);
+    });
+    
+    controlsContainer.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        handleTouchEnd(e);
+    });
+    
+    controlsContainer.addEventListener('mouseleave', (e) => {
+        e.preventDefault();
+        handleTouchCancel(e);
+    });
+}
+
 // UI event handlers
 function setupUIHandlers() {
     const startBtn = document.getElementById('start-btn');
@@ -1714,6 +1872,11 @@ function setupUIHandlers() {
     }
 
     window.startGame = (testMode = false) => {
+        // On mobile, force 2 players
+        if (isMobile) {
+            gameState.playerCount = 2;
+        }
+        
         // Player count is already set by buttons
         // Reset scores when starting new game
         gameState.scores = {};
@@ -1742,6 +1905,15 @@ function setupUIHandlers() {
         // Ensure canvas is sized correctly
         resizeCanvas();
 
+        // Setup mobile controls if on mobile and 2 players
+        if (isMobile && gameState.playerCount === 2) {
+            setupMobileControls();
+        } else {
+            // Remove mobile controls if they exist
+            const existingControls = document.getElementById('mobile-controls');
+            if (existingControls) existingControls.remove();
+        }
+
         updateScoreDisplay();
         gameLoop();
     };
@@ -1751,6 +1923,10 @@ function setupUIHandlers() {
     menuBtn.addEventListener('click', () => {
         gameState.gameRunning = false;
         document.getElementById('game-screen').classList.remove('active');
+
+        // Remove mobile controls when leaving game
+        const existingControls = document.getElementById('mobile-controls');
+        if (existingControls) existingControls.remove();
 
         if (gameState.isTestMode) {
             document.getElementById('editor-screen').classList.add('active');
@@ -1914,6 +2090,11 @@ function updateControlsVisibility(count) {
 
 document.querySelectorAll('.player-count-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+        // On mobile, only allow 2 players
+        if (isMobile && parseInt(btn.dataset.count) !== 2) {
+            return;
+        }
+        
         document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         gameState.playerCount = parseInt(btn.dataset.count);
@@ -1928,11 +2109,22 @@ function initUI() {
         firstLevelBtn.classList.add('selected');
     }
 
+    // On mobile, force 2 players and hide 3/4 player buttons
+    if (isMobile) {
+        gameState.playerCount = 2;
+        const player3Btn = document.querySelector('.player-count-btn[data-count="3"]');
+        const player4Btn = document.querySelector('.player-count-btn[data-count="4"]');
+        if (player3Btn) player3Btn.style.display = 'none';
+        if (player4Btn) player4Btn.style.display = 'none';
+    }
+
     const defaultPlayerBtn = document.querySelector('.player-count-btn[data-count="2"]');
     if (defaultPlayerBtn) {
         defaultPlayerBtn.classList.add('selected');
-        gameState.playerCount = 2;
-        updateControlsVisibility(2);
+        if (!isMobile) {
+            gameState.playerCount = 2;
+        }
+        updateControlsVisibility(gameState.playerCount);
     }
 }
 
