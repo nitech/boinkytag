@@ -20,13 +20,13 @@ Et lokalt multiplayer spill av catch, inspirert av spillet på Poki.
 ## Hvordan starte webserveren
 
 ### Metode 1: Dev server med hot reloading (anbefalt for utvikling)
-Hvis du har Node.js installert, kan du bruke dev serveren med automatisk oppdatering:
+Hvis du har Bun installert, kan du bruke dev serveren med automatisk oppdatering:
 ```bash
 # Installer avhengigheter (kun første gang)
-npm install
+bun install
 
 # Start dev serveren med hot reloading
-npm run dev
+bun run dev
 ```
 
 Serveren starter automatisk og nettleseren åpnes. Når du gjør endringer i koden, lastes siden automatisk på nytt!
