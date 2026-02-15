@@ -41,6 +41,7 @@ class MapEditor {
 
         this.panState = null;
         this.miniMapPanning = false;
+        this.spacePressed = false;
         this.mousePos = { x: 0, y: 0, worldX: 0, worldY: 0 };
 
         this.platformTiles = [0, 2, 4, 6, 7];
@@ -153,6 +154,26 @@ class MapEditor {
             document.getElementById('save-level-modal').classList.remove('active');
         });
         document.getElementById('confirm-save-btn').addEventListener('click', () => this.confirmSaveLevel());
+
+        // SPACE key for panning
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !this.spacePressed) {
+                e.preventDefault();
+                this.spacePressed = true;
+                if (document.getElementById('editor-screen').classList.contains('active')) {
+                    this.canvas.style.cursor = 'grab';
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                this.spacePressed = false;
+                if (!this.panState) {
+                    this.canvas.style.cursor = 'crosshair';
+                }
+            }
+        });
     }
 
     enterEditor(data = null, name = null) {
@@ -175,6 +196,11 @@ class MapEditor {
     }
 
     exitEditor() {
+        this.spacePressed = false;
+        this.panState = null;
+        if (this.canvas) {
+            this.canvas.style.cursor = 'crosshair';
+        }
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('menu-screen').classList.add('active');
     }
@@ -243,7 +269,7 @@ class MapEditor {
         const mouseY = e.clientY - rect.top;
         const worldPos = this.screenToWorld(mouseX, mouseY);
 
-        if (e.button === 2) { // Right click - Pan
+        if (e.button === 2 || (e.button === 0 && this.spacePressed)) { // Right click or SPACE + Left click - Pan
             this.panState = { x: e.clientX, y: e.clientY, camX: this.camera.x, camY: this.camera.y };
             this.canvas.style.cursor = 'grabbing';
             return;
@@ -351,6 +377,12 @@ class MapEditor {
             return;
         }
 
+        // Update cursor when SPACE is held (but not panning yet)
+        if (this.spacePressed && !this.panState) {
+            this.canvas.style.cursor = 'grab';
+            return;
+        }
+
         const snappedX = Math.round(worldPos.x / this.gridSize) * this.gridSize;
         const snappedY = Math.round(worldPos.y / this.gridSize) * this.gridSize;
 
@@ -433,7 +465,8 @@ class MapEditor {
 
     handleMouseUp() {
         if (this.panState) {
-            this.canvas.style.cursor = 'crosshair';
+            // Restore cursor based on whether SPACE is still pressed
+            this.canvas.style.cursor = this.spacePressed ? 'grab' : 'crosshair';
         }
         this.panState = null;
         this.interaction.type = 'none';
@@ -445,8 +478,26 @@ class MapEditor {
         if (e.ctrlKey) {
             e.preventDefault();
         }
+        
+        // Get mouse position relative to canvas
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Convert mouse position to world coordinates before zoom
+        const worldPos = this.screenToWorld(mouseX, mouseY);
+        
+        // Calculate zoom amount
         const zoomAmount = e.deltaY > 0 ? 0.9 : 1.1;
+        const oldZoom = this.camera.zoom;
+        
+        // Apply zoom
         this.zoom(zoomAmount);
+        
+        // Adjust camera position so the same world point stays under the cursor
+        const newWorldPos = this.screenToWorld(mouseX, mouseY);
+        this.camera.x += worldPos.x - newWorldPos.x;
+        this.camera.y += worldPos.y - newWorldPos.y;
     }
 
     zoom(amount) {
