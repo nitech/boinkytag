@@ -990,9 +990,7 @@ kbd {
     color: #888;
     margin-bottom: 8px;
     line-height: 1.4;
-}
-
-.level-item p {
+}.level-item p {
     font-size: 0.5em;
     color: #666;
 }
