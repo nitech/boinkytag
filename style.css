@@ -1232,10 +1232,18 @@ kbd {
     border-color: #a600ff;
 }
 
-/* Hide mobile controls on desktop */
-@media (min-width: 769px) {
+/* Hide mobile controls on desktop - but show on mobile in both portrait and landscape */
+/* Only hide on large desktop screens, not on tablets or mobile in landscape */
+@media (min-width: 1025px) and (min-height: 769px) {
     .mobile-controls {
         display: none !important;
+    }
+}
+
+/* Ensure controls are visible on touch devices regardless of orientation */
+@media (hover: none) and (pointer: coarse) {
+    .mobile-controls {
+        display: flex !important;
     }
 }
 

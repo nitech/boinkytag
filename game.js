@@ -1294,9 +1294,9 @@ function loadLevel(levelSource) {
     updateScoreDisplay();
 }
 
-// Mobile detection
+// Mobile detection - check for touch support and user agent, works in both portrait and landscape
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                 (window.innerWidth <= 768 && 'ontouchstart' in window);
+                 ('ontouchstart' in window && (window.innerWidth <= 768 || window.innerHeight <= 768));
 
 // Input handling
 const keys = {};
