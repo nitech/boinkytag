@@ -1167,29 +1167,43 @@ kbd {
 .player-controls {
     pointer-events: all;
     display: flex;
-    flex-direction: row;
-    align-items: flex-end;
+    flex-direction: column;
+    align-items: center;
     gap: 10px;
     padding: 15px;
     width: 50%;
 }
 
 .player-1-controls {
-    justify-content: flex-start;
+    align-items: flex-start;
 }
 
 .player-2-controls {
-    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.control-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.control-row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
 }
 
 .control-btn {
-    width: 80px;
-    height: 80px;
-    border: 3px solid rgba(255, 255, 255, 0.6);
-    background: rgba(0, 0, 0, 0.4);
+    width: 100px;
+    height: 100px;
+    border: none;
+    background: rgba(0, 0, 0, 0.2);
     color: white;
     font-family: 'Press Start 2P', cursive;
-    font-size: 1.8em;
+    font-size: 2em;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
@@ -1209,9 +1223,13 @@ kbd {
 .control-btn:active,
 .control-btn.active {
     transform: scale(0.95);
-    background: rgba(0, 247, 255, 0.6);
-    border-color: rgba(0, 247, 255, 0.9);
+    background: rgba(0, 247, 255, 0.3);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.jump-btn {
+    width: 210px; /* Same width as both left+right buttons (100px + 10px gap + 100px) */
+    height: 100px; /* Same height as left/right buttons */
 }
 
 /* Hide mobile controls on desktop - but show on mobile in both portrait and landscape */
@@ -1232,13 +1250,26 @@ kbd {
 /* Adjust for very small screens */
 @media (max-width: 400px) {
     .control-btn {
-        width: 70px;
-        height: 70px;
-        font-size: 1.5em;
+        width: 85px;
+        height: 85px;
+        font-size: 1.7em;
+    }
+    
+    .jump-btn {
+        width: 180px; /* 85px + 10px gap + 85px */
+        height: 85px;
     }
     
     .player-controls {
         padding: 10px;
+        gap: 8px;
+    }
+    
+    .control-column {
+        gap: 8px;
+    }
+    
+    .control-row {
         gap: 8px;
     }
 }
@@ -1246,13 +1277,26 @@ kbd {
 /* Landscape mobile optimization */
 @media (max-height: 500px) and (orientation: landscape) {
     .control-btn {
-        width: 60px;
-        height: 60px;
-        font-size: 1.3em;
+        width: 75px;
+        height: 75px;
+        font-size: 1.5em;
+    }
+    
+    .jump-btn {
+        width: 160px; /* 75px + 10px gap + 75px */
+        height: 75px;
     }
     
     .player-controls {
         padding: 10px;
+        gap: 8px;
+    }
+    
+    .control-column {
+        gap: 8px;
+    }
+    
+    .control-row {
         gap: 8px;
     }
 }
