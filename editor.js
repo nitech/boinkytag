@@ -49,8 +49,14 @@ class MapEditor {
 
         this.autoSaveTimer = null;
 
+        // Undo/Redo history
+        this.history = [];
+        this.historyIndex = -1;
+        this.maxHistorySize = 50;
+
         this.setupEventListeners();
         this.resize();
+        this.saveState(); // Save initial state
         this.render();
     }
 
@@ -174,6 +180,32 @@ class MapEditor {
                 }
             }
         });
+
+        // Undo/Redo keyboard shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (!document.getElementById('editor-screen').classList.contains('active')) return;
+            
+            // Check if we're in an input field
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'z' || e.key === 'Z') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        this.redo();
+                    } else {
+                        this.undo();
+                    }
+                } else if (e.key === 'y' || e.key === 'Y') {
+                    e.preventDefault();
+                    this.redo();
+                }
+            }
+        });
+
+        // Undo/Redo buttons
+        document.getElementById('editor-undo-btn').addEventListener('click', () => this.undo());
+        document.getElementById('editor-redo-btn').addEventListener('click', () => this.redo());
     }
 
     enterEditor(data = null, name = null) {
@@ -181,6 +213,10 @@ class MapEditor {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         const editorScreen = document.getElementById('editor-screen');
         editorScreen.classList.add('active');
+
+        // Reset history
+        this.history = [];
+        this.historyIndex = -1;
 
         if (data) {
             this.loadLevelData(data, false);
@@ -192,6 +228,8 @@ class MapEditor {
 
         this.selectedElement = null;
         this.updateProps();
+        this.saveState(); // Save initial state
+        this.updateUndoRedoButtons(); // Update button states
         this.resize();
     }
 
@@ -283,6 +321,7 @@ class MapEditor {
             el.targetX = snappedX;
             el.targetY = snappedY;
             this.pickingTeleportTarget = false;
+            this.saveState();
             this.updateProps();
             this.autoSave();
             return;
@@ -468,6 +507,12 @@ class MapEditor {
             // Restore cursor based on whether SPACE is still pressed
             this.canvas.style.cursor = this.spacePressed ? 'grab' : 'crosshair';
         }
+        
+        // Save state if we just finished an interaction (moving, resizing, creating)
+        if (this.interaction.type !== 'none') {
+            this.saveState();
+        }
+        
         this.panState = null;
         this.interaction.type = 'none';
         this.updateProps();
@@ -505,6 +550,76 @@ class MapEditor {
         this.camera.zoom = Math.max(this.camera.minZoom, Math.min(this.camera.maxZoom, this.camera.zoom));
         const zoomInfo = document.getElementById('zoom-info');
         if (zoomInfo) zoomInfo.textContent = `${Math.round(this.camera.zoom * 100)}%`;
+    }
+
+    saveState() {
+        // Remove any states after current index (when we're in the middle of history)
+        if (this.historyIndex < this.history.length - 1) {
+            this.history = this.history.slice(0, this.historyIndex + 1);
+        }
+
+        // Save current state
+        const state = {
+            elements: JSON.parse(JSON.stringify(this.elements)),
+            worldWidth: this.worldWidth,
+            worldHeight: this.worldHeight
+        };
+
+        this.history.push(state);
+        this.historyIndex++;
+
+        // Limit history size
+        if (this.history.length > this.maxHistorySize) {
+            this.history.shift();
+            this.historyIndex--;
+        }
+
+        this.updateUndoRedoButtons();
+    }
+
+    undo() {
+        if (this.historyIndex > 0) {
+            this.historyIndex--;
+            this.restoreState(this.history[this.historyIndex]);
+            this.updateUndoRedoButtons();
+        }
+    }
+
+    redo() {
+        if (this.historyIndex < this.history.length - 1) {
+            this.historyIndex++;
+            this.restoreState(this.history[this.historyIndex]);
+            this.updateUndoRedoButtons();
+        }
+    }
+
+    restoreState(state) {
+        this.elements = JSON.parse(JSON.stringify(state.elements));
+        this.worldWidth = state.worldWidth;
+        this.worldHeight = state.worldHeight;
+        
+        const wIn = document.getElementById('map-width-input');
+        const hIn = document.getElementById('map-height-input');
+        if (wIn) wIn.value = this.worldWidth;
+        if (hIn) hIn.value = this.worldHeight;
+
+        this.selectedElement = null;
+        this.updateProps();
+    }
+
+    updateUndoRedoButtons() {
+        const undoBtn = document.getElementById('editor-undo-btn');
+        const redoBtn = document.getElementById('editor-redo-btn');
+        
+        if (undoBtn) {
+            undoBtn.disabled = this.historyIndex <= 0;
+            undoBtn.style.opacity = this.historyIndex <= 0 ? '0.5' : '1';
+        }
+        
+        if (redoBtn) {
+            redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+            redoBtn.style.opacity = this.historyIndex >= this.history.length - 1 ? '0.5' : '1';
+        }
     }
 
     getResizeSide(el, mouseX, mouseY) {
@@ -578,6 +693,7 @@ class MapEditor {
                 }
                 break;
         }
+        this.saveState();
         this.updateProps();
         this.autoSave();
     }
@@ -591,6 +707,7 @@ class MapEditor {
         }
         this.elements[type].splice(index, 1);
         this.selectedElement = null;
+        this.saveState();
         this.updateProps();
         this.autoSave();
     }
@@ -637,6 +754,7 @@ class MapEditor {
                 opt.onclick = () => {
                     el.tileIndex = idx;
                     this.selectedTileIndex = idx;
+                    this.saveState();
                     this.updateProps();
                 };
                 selector.appendChild(opt);
@@ -928,6 +1046,7 @@ class MapEditor {
             if (hIn) hIn.value = this.worldHeight;
             this.selectedElement = null;
             this.updateProps();
+            // Note: saveState will be called by enterEditor after this
         }
     }
 
@@ -936,6 +1055,7 @@ class MapEditor {
             this.elements = this.getEmptyLevel();
             this.loadedLevelName = null;
             this.selectedElement = null;
+            this.saveState();
             this.updateProps();
         }
     }

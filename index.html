@@ -70,13 +70,15 @@
         <div class="editor-toolbar">
             <button id="editor-back-btn" class="editor-btn">Meny</button>
             <div class="tool-group">
-                <button id="editor-zoom-out" class="editor-btn">-</button>
-                <button id="editor-zoom-in" class="editor-btn">+</button>
-                <button id="editor-save-btn" class="editor-btn">Save</button>
-                <button id="editor-load-btn" class="editor-btn">Load</button>
+                <button id="editor-undo-btn" class="editor-btn" title="Undo (CTRL+Z)">↶ Undo</button>
+                <button id="editor-redo-btn" class="editor-btn" title="Redo (CTRL+Y / CTRL+SHIFT+Z)">↷ Redo</button>
+                <button id="editor-zoom-out" class="editor-btn" title="Zoom ut">-</button>
+                <button id="editor-zoom-in" class="editor-btn" title="Zoom inn">+</button>
+                <button id="editor-save-btn" class="editor-btn" title="Lagre bane">Save</button>
+                <button id="editor-load-btn" class="editor-btn" title="Last inn bane">Load</button>
                 <button id="editor-test-btn" class="editor-btn"
-                    style="background: var(--accent-color); color: #000;">Test</button>
-                <button id="editor-clear-btn" class="editor-btn">Clear</button>
+                    style="background: var(--accent-color); color: #000;" title="Test spill">Test</button>
+                <button id="editor-clear-btn" class="editor-btn" title="Tøm bane">Clear</button>
             </div>
             <div class="status-info">
                 <span id="coord-info">0, 0</span>
