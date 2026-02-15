@@ -1754,35 +1754,30 @@ function setupMobileControls() {
     controlsContainer.id = 'mobile-controls';
     controlsContainer.className = 'mobile-controls';
     
-    // Player 1 controls (left bottom corner)
+    // Player 1 controls (left side, bottom)
     const p1Controls = document.createElement('div');
     p1Controls.className = 'player-controls player-1-controls';
     p1Controls.innerHTML = `
-        <div class="control-row">
-            <button class="control-btn left-btn" data-player="1" data-action="left" aria-label="Venstre">←</button>
-            <button class="control-btn right-btn" data-player="1" data-action="right" aria-label="Høyre">→</button>
-        </div>
-        <button class="control-btn jump-btn" data-player="1" data-action="jump" aria-label="Hopp">↑</button>
+        <button class="control-btn left-btn" data-player="1" data-action="left" aria-label="Venstre">←</button>
+        <button class="control-btn right-btn" data-player="1" data-action="right" aria-label="Høyre">→</button>
     `;
 
-    // Player 2 controls (right bottom corner)
+    // Player 2 controls (right side, bottom)
     const p2Controls = document.createElement('div');
     p2Controls.className = 'player-controls player-2-controls';
     p2Controls.innerHTML = `
-        <div class="control-row">
-            <button class="control-btn left-btn" data-player="2" data-action="left" aria-label="Venstre">←</button>
-            <button class="control-btn right-btn" data-player="2" data-action="right" aria-label="Høyre">→</button>
-        </div>
-        <button class="control-btn jump-btn" data-player="2" data-action="jump" aria-label="Hopp">↑</button>
+        <button class="control-btn left-btn" data-player="2" data-action="left" aria-label="Venstre">←</button>
+        <button class="control-btn right-btn" data-player="2" data-action="right" aria-label="Høyre">→</button>
     `;
 
     controlsContainer.appendChild(p1Controls);
     controlsContainer.appendChild(p2Controls);
     gameScreen.appendChild(controlsContainer);
 
-    // Touch event handlers
-    const handleTouchStart = (e) => {
+    // Touch event handlers for buttons
+    const handleButtonTouchStart = (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Prevent screen tap handler from firing
         const btn = e.target.closest('.control-btn');
         if (!btn) return;
         
@@ -1790,38 +1785,27 @@ function setupMobileControls() {
         const action = btn.dataset.action;
         
         if (player === '1') {
-            if (action === 'jump') {
-                // For jump, simulate key press
-                const controls = playerControls[0];
-                keysPressed[controls.up] = true;
-            } else {
-                touchControls.player1[action] = true;
-            }
+            touchControls.player1[action] = true;
         } else if (player === '2') {
-            if (action === 'jump') {
-                // For jump, simulate key press
-                const controls = playerControls[1];
-                keysPressed[controls.up] = true;
-            } else {
-                touchControls.player2[action] = true;
-            }
+            touchControls.player2[action] = true;
         }
         
         // Visual feedback
         btn.classList.add('active');
     };
 
-    const handleTouchEnd = (e) => {
+    const handleButtonTouchEnd = (e) => {
         e.preventDefault();
+        e.stopPropagation();
         const btn = e.target.closest('.control-btn');
         if (!btn) return;
         
         const player = btn.dataset.player;
         const action = btn.dataset.action;
         
-        if (player === '1' && action !== 'jump') {
+        if (player === '1') {
             touchControls.player1[action] = false;
-        } else if (player === '2' && action !== 'jump') {
+        } else if (player === '2') {
             touchControls.player2[action] = false;
         }
         
@@ -1829,7 +1813,7 @@ function setupMobileControls() {
         btn.classList.remove('active');
     };
 
-    const handleTouchCancel = (e) => {
+    const handleButtonTouchCancel = (e) => {
         // Reset all controls on touch cancel
         touchControls.player1 = { left: false, right: false, jump: false };
         touchControls.player2 = { left: false, right: false, jump: false };
@@ -1840,24 +1824,67 @@ function setupMobileControls() {
         });
     };
 
-    controlsContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
-    controlsContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
-    controlsContainer.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+    // Button event handlers
+    controlsContainer.addEventListener('touchstart', handleButtonTouchStart, { passive: false });
+    controlsContainer.addEventListener('touchend', handleButtonTouchEnd, { passive: false });
+    controlsContainer.addEventListener('touchcancel', handleButtonTouchCancel, { passive: false });
     
     // Also support mouse events for testing on desktop
     controlsContainer.addEventListener('mousedown', (e) => {
         e.preventDefault();
-        handleTouchStart(e);
+        handleButtonTouchStart(e);
     });
     
     controlsContainer.addEventListener('mouseup', (e) => {
         e.preventDefault();
-        handleTouchEnd(e);
+        handleButtonTouchEnd(e);
     });
     
     controlsContainer.addEventListener('mouseleave', (e) => {
         e.preventDefault();
-        handleTouchCancel(e);
+        handleButtonTouchCancel(e);
+    });
+
+    // Screen tap handler for jumping - tap on your half of the screen (excluding buttons)
+    const handleScreenTap = (e) => {
+        // Don't handle if tapping on a button
+        if (e.target.closest('.control-btn') || e.target.closest('.mobile-controls')) {
+            return;
+        }
+
+        const touch = e.touches && e.touches.length > 0 ? e.touches[0] : 
+                     e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : 
+                     e;
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const tapX = touch.clientX || touch.pageX;
+        const tapY = touch.clientY || touch.pageY;
+
+        // Check if tap is in the bottom area (where buttons are) - ignore those
+        const buttonAreaHeight = 120; // Approximate height of button area
+        if (tapY > screenHeight - buttonAreaHeight) {
+            return; // Ignore taps in button area
+        }
+
+        // Determine which player's side was tapped
+        const middleX = screenWidth / 2;
+        const playerIndex = tapX < middleX ? 0 : 1;
+
+        // Trigger jump for the appropriate player
+        if (playerIndex < playerControls.length) {
+            const controls = playerControls[playerIndex];
+            keysPressed[controls.up] = true;
+        }
+    };
+
+    // Add screen tap handler to game screen
+    gameScreen.addEventListener('touchstart', handleScreenTap, { passive: false });
+    
+    // Also support mouse clicks for testing
+    gameScreen.addEventListener('click', (e) => {
+        if (!e.target.closest('.control-btn') && !e.target.closest('.mobile-controls')) {
+            handleScreenTap(e);
+        }
     });
 }
 

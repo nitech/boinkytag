@@ -1150,7 +1150,7 @@ kbd {
     color: #666;
 }
 
-/* Mobile Controls - Compact Corner Design (Alternative 1) */
+/* Mobile Controls - Large bottom buttons */
 .mobile-controls {
     position: absolute;
     bottom: 0;
@@ -1159,7 +1159,7 @@ kbd {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    padding: 15px;
+    padding: 0;
     pointer-events: none;
     z-index: 100;
 }
@@ -1167,40 +1167,36 @@ kbd {
 .player-controls {
     pointer-events: all;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 15px;
+    width: 50%;
 }
 
 .player-1-controls {
-    align-items: flex-start;
+    justify-content: flex-start;
 }
 
 .player-2-controls {
-    align-items: flex-end;
-}
-
-.control-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+    justify-content: flex-end;
 }
 
 .control-btn {
-    width: 50px;
-    height: 50px;
-    border: 3px solid rgba(255, 255, 255, 0.8);
-    background: rgba(0, 0, 0, 0.6);
+    width: 80px;
+    height: 80px;
+    border: 3px solid rgba(255, 255, 255, 0.6);
+    background: rgba(0, 0, 0, 0.4);
     color: white;
     font-family: 'Press Start 2P', cursive;
-    font-size: 1.2em;
+    font-size: 1.8em;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     transition: all 0.1s;
     display: flex;
     align-items: center;
@@ -1212,24 +1208,10 @@ kbd {
 
 .control-btn:active,
 .control-btn.active {
-    transform: scale(0.9);
-    background: rgba(0, 247, 255, 0.8);
-    border-color: #00f7ff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.jump-btn {
-    width: 60px;
-    height: 60px;
-    font-size: 1.5em;
-    background: rgba(166, 0, 255, 0.6);
-    border-color: rgba(166, 0, 255, 0.9);
-}
-
-.jump-btn:active,
-.jump-btn.active {
-    background: rgba(166, 0, 255, 0.9);
-    border-color: #a600ff;
+    transform: scale(0.95);
+    background: rgba(0, 247, 255, 0.6);
+    border-color: rgba(0, 247, 255, 0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Hide mobile controls on desktop - but show on mobile in both portrait and landscape */
@@ -1250,53 +1232,27 @@ kbd {
 /* Adjust for very small screens */
 @media (max-width: 400px) {
     .control-btn {
-        width: 45px;
-        height: 45px;
-        font-size: 1em;
-    }
-    
-    .jump-btn {
-        width: 55px;
-        height: 55px;
-        font-size: 1.3em;
-    }
-    
-    .mobile-controls {
-        padding: 10px;
-    }
-    
-    .control-row {
-        gap: 6px;
+        width: 70px;
+        height: 70px;
+        font-size: 1.5em;
     }
     
     .player-controls {
-        gap: 6px;
+        padding: 10px;
+        gap: 8px;
     }
 }
 
 /* Landscape mobile optimization */
 @media (max-height: 500px) and (orientation: landscape) {
-    .mobile-controls {
-        padding: 8px;
-    }
-    
     .control-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 0.9em;
-    }
-    
-    .jump-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.2em;
-    }
-    
-    .control-row {
-        gap: 6px;
+        width: 60px;
+        height: 60px;
+        font-size: 1.3em;
     }
     
     .player-controls {
-        gap: 6px;
+        padding: 10px;
+        gap: 8px;
     }
 }
