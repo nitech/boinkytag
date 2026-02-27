@@ -73,7 +73,10 @@ class MapEditor {
                 { x: this.worldWidth / 2 + 50, y: this.worldHeight - 100 },
                 { x: this.worldWidth / 2 - 150, y: this.worldHeight - 100 },
                 { x: this.worldWidth / 2 + 150, y: this.worldHeight - 100 }
-            ]
+            ],
+            finishPoint: { x: this.worldWidth - 120, y: 100, width: 80, height: 80 },
+            enemies: [],
+            mushrooms: []
         };
     }
 
@@ -87,12 +90,21 @@ class MapEditor {
                 }
             }
         }
-        // Also check spawn points (approx 40x40)
         for (const p of this.elements.spawnPoints) {
             if (p === excludeEl) continue;
-            if (x < p.x + 20 && x + w > p.x - 20 && y < p.y + 20 && y + h > p.y - 20) {
-                return true;
-            }
+            if (x < p.x + 20 && x + w > p.x - 20 && y < p.y + 20 && y + h > p.y - 20) return true;
+        }
+        const fp = this.elements.finishPoint;
+        if (fp && fp !== excludeEl && x < fp.x + fp.width && x + w > fp.x && y < fp.y + fp.height && y + h > fp.y) return true;
+        for (const el of (this.elements.enemies || [])) {
+            if (el === excludeEl) continue;
+            const ew = el.width || 40, eh = el.height || 40;
+            if (x < el.x + ew && x + w > el.x && y < el.y + eh && y + h > el.y) return true;
+        }
+        for (const el of (this.elements.mushrooms || [])) {
+            if (el === excludeEl) continue;
+            const mw = el.width || 48, mh = el.height || 48;
+            if (x < el.x + mw && x + w > el.x && y < el.y + mh && y + h > el.y) return true;
         }
         return false;
     }
@@ -650,7 +662,26 @@ class MapEditor {
                 return { type: 'spawnPoints', element: p, index: i };
             }
         }
-
+        const fp = this.elements.finishPoint;
+        if (fp && x >= fp.x && x <= fp.x + fp.width && y >= fp.y && y <= fp.y + fp.height) {
+            return { type: 'finishPoint', element: fp, index: 0 };
+        }
+        const enemies = this.elements.enemies || [];
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const el = enemies[i];
+            const ew = el.width || 40, eh = el.height || 40;
+            if (x >= el.x && x <= el.x + ew && y >= el.y && y <= el.y + eh) {
+                return { type: 'enemies', element: el, index: i };
+            }
+        }
+        const mushrooms = this.elements.mushrooms || [];
+        for (let i = mushrooms.length - 1; i >= 0; i--) {
+            const el = mushrooms[i];
+            const mw = el.width || 48, mh = el.height || 48;
+            if (x >= el.x && x <= el.x + mw && y >= el.y && y <= el.y + mh) {
+                return { type: 'mushrooms', element: el, index: i };
+            }
+        }
         const categories = ['boostTiles', 'teleports', 'bouncePads', 'platforms'];
         for (const cat of categories) {
             for (let i = this.elements[cat].length - 1; i >= 0; i--) {
@@ -703,6 +734,40 @@ class MapEditor {
                     if (this.elements.spawnPoints.length > 4) this.elements.spawnPoints.shift();
                 }
                 break;
+            case 'finish':
+                if (!this.isOutOfBounds(x, y, 80, 80) && !this.isAreaOccupied(x, y, 80, 80)) {
+                    this.elements.finishPoint = { x, y, width: 80, height: 80 };
+                }
+                break;
+            case 'enemy':
+                w = 40; h = 40;
+                if (!this.isOutOfBounds(x, y, w, h) && !this.isAreaOccupied(x, y, w, h)) {
+                    if (!this.elements.enemies) this.elements.enemies = [];
+                    if (this.elements.enemies.length < 20) {
+                        this.elements.enemies.push({ x, y, width: w, height: h });
+                    }
+                }
+                break;
+            case 'mushroom':
+                w = 48; h = 48;
+                let platformBelowM = null;
+                let minYM = this.worldHeight;
+                this.elements.platforms.forEach(p => {
+                    if (x + w > p.x && x < p.x + p.width && p.y >= y - 20 && p.y < minYM) {
+                        minYM = p.y;
+                        platformBelowM = p;
+                    }
+                });
+                if (platformBelowM) {
+                    const finalY = platformBelowM.y - h;
+                    if (!this.isOutOfBounds(x, finalY, w, h) && !this.isAreaOccupied(x, finalY, w, h)) {
+                        if (!this.elements.mushrooms) this.elements.mushrooms = [];
+                        this.elements.mushrooms.push({ x, y: finalY, width: w, height: h });
+                    }
+                } else {
+                    alert("Sopp må plasseres over en plattform!");
+                }
+                break;
         }
         this.saveState();
         this.updateProps();
@@ -716,7 +781,11 @@ class MapEditor {
             alert("Du kan ikke slette gulvet!");
             return;
         }
-        this.elements[type].splice(index, 1);
+        if (type === 'finishPoint') {
+            this.elements.finishPoint = { x: this.worldWidth - 120, y: 100, width: 80, height: 80 };
+        } else if (Array.isArray(this.elements[type])) {
+            this.elements[type].splice(index, 1);
+        }
         this.selectedElement = null;
         this.saveState();
         this.updateProps();
@@ -845,7 +914,10 @@ class MapEditor {
             { id: 'bounce', label: 'Bounce', icon: '🟢' },
             { id: 'teleport', label: 'Teleport', icon: '🌀' },
             { id: 'boost', label: 'Boost', icon: '🍄' },
-            { id: 'spawn', label: 'Spawn', icon: '🐷' }
+            { id: 'spawn', label: 'Spawn', icon: '🐷' },
+            { id: 'finish', label: 'Finish', icon: '🏁' },
+            { id: 'enemy', label: 'Enemy', icon: '👾' },
+            { id: 'mushroom', label: 'Mushroom', icon: '🍄' }
         ];
 
         otherTools.forEach(t => {
@@ -1051,6 +1123,9 @@ class MapEditor {
             this.elements = JSON.parse(JSON.stringify(data.elements));
             this.worldWidth = data.worldWidth || 8000;
             this.worldHeight = data.worldHeight || 4800;
+            if (!this.elements.finishPoint) this.elements.finishPoint = { x: this.worldWidth - 120, y: 100, width: 80, height: 80 };
+            if (!this.elements.enemies) this.elements.enemies = [];
+            if (!this.elements.mushrooms) this.elements.mushrooms = [];
             const wIn = document.getElementById('map-width-input');
             const hIn = document.getElementById('map-height-input');
             if (wIn) wIn.value = this.worldWidth;
@@ -1235,6 +1310,55 @@ class MapEditor {
                 targetCtx.shadowBlur = 4;
                 targetCtx.fillText(`P${i + 1}`, p.x, p.y - 25);
                 targetCtx.shadowBlur = 0;
+            }
+        });
+
+        const fp = this.elements.finishPoint;
+        if (fp) {
+            targetCtx.fillStyle = 'rgba(0, 200, 0, 0.5)';
+            targetCtx.strokeStyle = '#0a0';
+            targetCtx.lineWidth = isMiniMap ? 1 : 3 / this.camera.zoom;
+            targetCtx.fillRect(fp.x, fp.y, fp.width, fp.height);
+            targetCtx.strokeRect(fp.x, fp.y, fp.width, fp.height);
+            if (!isMiniMap) {
+                targetCtx.fillStyle = '#fff';
+                targetCtx.font = 'bold 14px Arial';
+                targetCtx.textAlign = 'center';
+                targetCtx.fillText('Finish', fp.x + fp.width / 2, fp.y + fp.height / 2 + 5);
+            }
+            if (!isMiniMap && fp === this.selectedElement?.element) {
+                targetCtx.strokeStyle = '#fff';
+                targetCtx.lineWidth = 2 / this.camera.zoom;
+                targetCtx.strokeRect(fp.x, fp.y, fp.width, fp.height);
+            }
+        }
+
+        (this.elements.enemies || []).forEach((el, i) => {
+            const ew = el.width || 40, eh = el.height || 40;
+            targetCtx.fillStyle = '#c00';
+            targetCtx.beginPath();
+            targetCtx.arc(el.x + ew / 2, el.y + eh / 2, Math.min(ew, eh) / 2, 0, Math.PI * 2);
+            targetCtx.fill();
+            targetCtx.strokeStyle = '#800';
+            targetCtx.lineWidth = isMiniMap ? 1 : 2 / this.camera.zoom;
+            targetCtx.stroke();
+            if (!isMiniMap && el === this.selectedElement?.element) {
+                targetCtx.strokeStyle = '#fff';
+                targetCtx.strokeRect(el.x, el.y, ew, eh);
+            }
+        });
+
+        (this.elements.mushrooms || []).forEach((el) => {
+            const mw = el.width || 48, mh = el.height || 48;
+            targetCtx.fillStyle = '#8B4513';
+            targetCtx.fillRect(el.x, el.y + mh / 2, mw, mh / 2);
+            targetCtx.fillStyle = '#dc143c';
+            targetCtx.beginPath();
+            targetCtx.ellipse(el.x + mw / 2, el.y + mh / 4, mw / 2, mh / 3, 0, 0, Math.PI * 2);
+            targetCtx.fill();
+            if (!isMiniMap && el === this.selectedElement?.element) {
+                targetCtx.strokeStyle = '#fff';
+                targetCtx.strokeRect(el.x, el.y, mw, mh);
             }
         });
     }

@@ -115,4 +115,7 @@ const observer = new MutationObserver((mutations) => {
     });
 });
 
-observer.observe(document.getElementById('menu-screen'), { attributes: true, attributeFilter: ['class'] });
+const menuScreen = document.getElementById('menu-screen');
+if (menuScreen) observer.observe(menuScreen, { attributes: true, attributeFilter: ['class'] });
+
+export {};

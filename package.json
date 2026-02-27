@@ -2,11 +2,14 @@
   "name": "boinkytag",
   "version": "1.0.0",
   "description": "Et lokalt multiplayer spill av catch",
+  "type": "module",
   "scripts": {
+    "build": "esbuild js/main.js --bundle --outfile=dist/bundle.js",
     "dev": "live-server --port=8000 --open=/index.html --watch=.",
     "start": "live-server --port=8000 --open=/index.html"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "live-server": "^1.2.2"
   }
 }
